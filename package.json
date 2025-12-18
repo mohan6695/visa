@@ -1,0 +1,30 @@
+{
+  "name": "visa-platform",
+  "version": "1.0.0",
+  "description": "Visa Platform - Your Gateway to Global Travel",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "start": "python -m http.server 8000",
+    "dev:node": "npx http-server -p 8000",
+    "dev:docker": "docker-compose up -d",
+    "setup:backend": "cd backend && pip install -r requirements.txt",
+    "setup:frontend": "cd frontend && npm install",
+    "seed:data": "cd backend && python src/scripts/seed_data.py",
+    "build:frontend": "cd frontend && npm run build",
+    "test:backend": "cd backend && pytest tests/ -v",
+    "test:frontend": "cd frontend && npm run test"
+  },
+  "keywords": [
+    "visa",
+    "immigration",
+    "travel",
+    "global",
+    "community"
+  ],
+  "author": "Visa Platform Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
