@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countries - Visa Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .nav-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .country-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .country-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="nav-gradient text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-pink-600 font-bold text-lg">V</span>
+                    </div>
+                    <span class="text-xl font-bold">Visa Platform</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="hover:text-pink-200 transition-colors">Home</a>
+                    <a href="countries.html" class="text-pink-200 font-semibold border-b-2 border-pink-200">Countries</a>
+                    <a href="communities.html" class="hover:text-pink-200 transition-colors">Communities</a>
+                    <button class="bg-white text-pink-600 px-4 py-2 rounded-lg font-medium hover:bg-pink-50 transition-colors">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                    Choose Your Destination Country
+                </h1>
+                <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+                    Explore comprehensive visa information, requirements, and community support for your preferred immigration destination.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Countries Grid -->
+    <div class="max-w-7xl mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- United States -->
+            <div class="country-card bg-white rounded-xl shadow-lg overflow-hidden" onclick="window.location.href='country-usa.html'">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://flagcdn.com/w160/us.png" alt="United States" class="w-16 h-12 rounded shadow-lg">
+                        <div>
+                            <h3 class="text-2xl font-bold">🇺🇸 United States</h3>
+                            <p class="text-blue-100">America's immigration pathways</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">7</div>
+                            <div class="text-sm text-gray-600">Visa Types</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">85-95%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            H-1B, F-1, EB-1, EB-2, L-1, O-1
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Points-tested & sponsored visas
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                            Tech & skilled worker focus
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-500">
+                            <span class="font-medium">4,523</span> active members
+                        </div>
+                        <div class="text-blue-600 font-medium hover:text-blue-800">
+                            Explore visas →
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canada -->
+            <div class="country-card bg-white rounded-xl shadow-lg overflow-hidden" onclick="window.location.href='country-canada.html'">
+                <div class="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://flagcdn.com/w160/ca.png" alt="Canada" class="w-16 h-12 rounded shadow-lg">
+                        <div>
+                            <h3 class="text-2xl font-bold">🇨🇦 Canada</h3>
+                            <p class="text-red-100">Express Entry & provincial pathways</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600">6</div>
+                            <div class="text-sm text-gray-600">Visa Types</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">75-85%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                            Express Entry, Study Permits, PNP
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            Points-tested system (400+ CRS)
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Provincial nomination programs
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-500">
+                            <span class="font-medium">8,234</span> active members
+                        </div>
+                        <div class="text-red-600 font-medium hover:text-red-800">
+                            Explore visas →
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- United Kingdom -->
+            <div class="country-card bg-white rounded-xl shadow-lg overflow-hidden" onclick="window.location.href='country-uk.html'">
+                <div class="bg-gradient-to-r from-blue-800 to-blue-900 p-6 text-white">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://flagcdn.com/w160/gb.png" alt="United Kingdom" class="w-16 h-12 rounded shadow-lg">
+                        <div>
+                            <h3 class="text-2xl font-bold">🇬🇧 United Kingdom</h3>
+                            <p class="text-blue-100">Points-based skilled worker system</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">8</div>
+                            <div class="text-sm text-gray-600">Visa Routes</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">70-85%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            Skilled Worker, Student, Innovator
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                            Global Talent & points system
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                            Route to settlement & citizenship
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-500">
+                            <span class="font-medium">6,543</span> active members
+                        </div>
+                        <div class="text-blue-600 font-medium hover:text-blue-800">
+                            Explore visas →
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Australia -->
+            <div class="country-card bg-white rounded-xl shadow-lg overflow-hidden" onclick="window.location.href='country-australia.html'">
+                <div class="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://flagcdn.com/w160/au.png" alt="Australia" class="w-16 h-12 rounded shadow-lg">
+                        <div>
+                            <h3 class="text-2xl font-bold">🇦🇺 Australia</h3>
+                            <p class="text-green-100">Points-tested skilled migration</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">6</div>
+                            <div class="text-sm text-gray-600">Visa Types</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">65-80%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Subclass 189, 190, 491 visas
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            Points-tested (65+ required)
+                        </div>
+                        <div class="flex items-center text-sm text-gray-700">
+                            <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                            Regional & skilled migration focus
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-500">
+                            <span class="font-medium">7,234</span> active members
+                        </div>
+                        <div class="text-green-600 font-medium hover:text-green-700">
+                            Explore visas →
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="mt-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl p-8 text-center text-white">
+            <h3 class="text-2xl font-bold mb-4">Can't Find Your Country?</h3>
+            <p class="text-pink-100 mb-6 max-w-2xl mx-auto">
+                We're continuously expanding our coverage. Join our community to get notified when we add more countries and stay updated on immigration news.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="window.location.href='groups.html'" class="bg-white text-pink-600 px-6 py-3 rounded-lg font-semibold hover:bg-pink-50 transition-colors">
+                    Join Community
+                </button>
+                <button onclick="window.location.href='posts.html'" class="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-pink-600 transition-colors">
+                    Share Your Journey
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">V</span>
+                        </div>
+                        <span class="text-xl font-bold">Visa Platform</span>
+                    </div>
+                    <p class="text-gray-400">
+                        Your trusted partner for global visa information and immigration guidance.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="countries.html" class="hover:text-white transition-colors">All Countries</a></li>
+                        <li><a href="communities.html" class="hover:text-white transition-colors">Communities</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Popular Countries</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="country-usa.html" class="hover:text-white transition-colors">United States</a></li>
+                        <li><a href="country-canada.html" class="hover:text-white transition-colors">Canada</a></li>
+                        <li><a href="country-uk.html" class="hover:text-white transition-colors">United Kingdom</a></li>
+                        <li><a href="country-australia.html" class="hover:text-white transition-colors">Australia</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="help.html" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="privacy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Visa Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Countries page loaded successfully');
+        });
+    </script>
+</body>
+</html>

@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  # Frontend Service
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://backend:8000
-      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
-      - redis
-    networks:
-      - visa-network
-
   # Backend API Service
   backend:
     build:
@@ -31,107 +9,114 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/visa_db
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/visa_community
+      - REDIS_URL=redis://redis:6379
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-groq}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
       - SECRET_KEY=${SECRET_KEY}
-      - ENVIRONMENT=development
-    volumes:
-      - ./backend:/app
-      - ./backend/uploads:/app/uploads
+      - DEBUG=${DEBUG:-false}
     depends_on:
       - postgres
       - redis
-    networks:
-      - visa-network
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Database Service
-  postgres:
-    image: supabase/postgres:15.1.0.117
-    environment:
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=visa_db
-      - POSTGRES_USER=postgres
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "5432:5432"
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=visa_community
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - visa-network
+      - ./supabase_migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Redis Cache Service
+  # Redis Cache
   redis:
-    image: redis:7.2-alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - visa-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Meilisearch Service
-  meilisearch:
-    image: getmeili/meilisearch:v1.7
+  # Ollama for Local AI Models (Optional)
+  ollama:
+    image: ollama/ollama
     ports:
-      - "7700:7700"
-    environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+      - "11434:11434"
     volumes:
-      - meilisearch_data:/meili_data
-    networks:
-      - visa-network
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    profiles:
+      - ai-local
 
-  # Celery Worker Service
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/visa_db
-      - REDIS_URL=redis://redis:6379/0
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - SECRET_KEY=${SECRET_KEY}
+  # Nginx Reverse Proxy (Optional for Production)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./backend:/app
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - postgres
-      - redis
-    networks:
-      - visa-network
+      - backend
+      - frontend
+    restart: unless-stopped
+    profiles:
+      - production
 
-  # Celery Beat Scheduler Service
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    command: celery -A src.celery_app beat --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/visa_db
-      - REDIS_URL=redis://redis:6379/0
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - SECRET_KEY=${SECRET_KEY}
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - visa-network
-
-  # Prometheus Monitoring Service
+  # Monitoring with Prometheus (Optional)
   prometheus:
-    image: prom/prometheus:v2.47.0
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -139,32 +124,33 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
-    networks:
-      - visa-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
 
-  # Grafana Monitoring Service
+  # Grafana for Visualization (Optional)
   grafana:
-    image: grafana/grafana:10.1.0
+    image: grafana/grafana:latest
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
-    networks:
-      - visa-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
 
 volumes:
   postgres_data:
   redis_data:
-  meilisearch_data:
-  prometheus_data:
+  ollama_data:
   grafana_data:
 
 networks:
-  visa-network:
-    driver: bridge
+  default:
+    name: visa_network

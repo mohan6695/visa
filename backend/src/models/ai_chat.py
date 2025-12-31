@@ -1,111 +1,99 @@
-"""
-AI chat models for intelligent visa assistance
-Implements RAG (Retrieval Augmented Generation) system
-"""
-
-from sqlalchemy import Column, String, Text, Boolean, Integer, Float, ForeignKey, JSON, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func, Index, JSON
 from sqlalchemy.orm import relationship
-from enum import Enum as PyEnum
+from .base import Base, TimestampMixin
 
-from .base import SQLAlchemyBase
-
-
-class ChatSessionStatus(PyEnum):
-    """Chat session status"""
-    ACTIVE = "active"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    ARCHIVED = "archived"
-
-
-class MessageRole(PyEnum):
-    """Message roles in conversation"""
-    USER = "user"
-    ASSISTANT = "assistant"
-    SYSTEM = "system"
-
-
-class ChatSession(SQLAlchemyBase):
-    """AI chat session model"""
+class ChatSession(Base, TimestampMixin):
+    """Model for AI chat sessions"""
+    __tablename__ = "chat_sessions"
     
-    # User association
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    
-    # Session metadata
-    title = Column(String(200))
-    topic = Column(String(100))  # visa_question, country_info, embassy_info, etc.
-    context_data = Column(JSON)  # country_id, visa_type_id, etc.
-    
-    # Session configuration
-    model_used = Column(String(50))  # gpt-4, claude-3, llama-3, etc.
-    temperature = Column(Float, default=0.7)
-    max_tokens = Column(Integer, default=1000)
-    
-    # Session statistics
-    message_count = Column(Integer, default=0)
-    total_tokens_used = Column(Integer, default=0)
-    total_cost = Column(Float, default=0.0)
-    
-    # Status and metadata
-    status = Column(String(20), default=ChatSessionStatus.ACTIVE.value)
-    is_feedback_provided = Column(Boolean, default=False)
-    feedback_rating = Column(Integer)  # 1-5 stars
-    feedback_text = Column(Text)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for anonymous
+    session_id = Column(String(100), unique=True, index=True, nullable=False)
+    title = Column(String(200))  # Auto-generated title from first message
+    is_active = Column(Boolean, default=True)
+    metadata = Column(JSON)  # Additional session metadata
     
     # Relationships
     user = relationship("User")
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
     
-    # Indexes
+    # Indexes for performance
     __table_args__ = (
-        Index('idx_chat_session_user', 'user_id'),
-        Index('idx_chat_session_status', 'status'),
-        Index('idx_chat_session_created', 'created_at'),
+        Index('idx_chat_sessions_user_id', 'user_id'),
+        Index('idx_chat_sessions_session_id', 'session_id'),
+        Index('idx_chat_sessions_is_active', 'is_active'),
+        Index('idx_chat_sessions_created_at', 'created_at'),
     )
     
-    def __repr__(self) -> str:
-        return f"<ChatSession(id={self.id}, user_id={self.user_id}, topic='{self.topic}')>"
+    def __repr__(self):
+        return f"<ChatSession(id={self.id}, session_id='{self.session_id}', user_id={self.user_id})>"
 
-
-class ChatMessage(SQLAlchemyBase):
-    """Individual chat messages"""
+class ChatMessage(Base, TimestampMixin):
+    """Model for individual chat messages"""
+    __tablename__ = "chat_messages"
     
-    # Session association
-    session_id = Column(Integer, ForeignKey("chat_session.id"), nullable=False)
-    
-    # Message content
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
     role = Column(String(20), nullable=False)  # user, assistant, system
     content = Column(Text, nullable=False)
-    
-    # AI-specific metadata
-    model_used = Column(String(50))
-    tokens_used = Column(Integer, default=0)
-    response_time = Column(Float)  # in seconds
-    confidence_score = Column(Float)  # AI confidence 0-1
-    
-    # RAG context
-    context_documents = Column(JSON, default=list)  # Retrieved documents
-    embeddings_vector = Column(JSON)  # Vector representation
-    search_queries = Column(JSON, default=list)  # What was searched
-    
-    # User feedback
-    is_helpful = Column(Boolean)
-    user_rating = Column(Integer)
-    feedback_text = Column(Text)
-    
-    # Message features
-    has_attachments = Column(Boolean, default=False)
-    attachments = Column(JSON, default=list)
+    content_type = Column(String(20), default="text")  # text, image, file
+    message_metadata = Column(JSON)  # Additional message metadata
     
     # Relationships
     session = relationship("ChatSession", back_populates="messages")
     
-    # Indexes
+    # Indexes for performance
     __table_args__ = (
-        Index('idx_chat_message_session', 'session_id'),
-        Index('idx_chat_message_role', 'role'),
-        Index('idx_chat_message_created', 'created_at'),
+        Index('idx_chat_messages_session_id', 'session_id'),
+        Index('idx_chat_messages_role', 'role'),
+        Index('idx_chat_messages_created_at', 'created_at'),
     )
     
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"<ChatMessage(id={self.id}, session_id={self.session_id}, role='{self.role}')>"
+
+class ChatContext(Base, TimestampMixin):
+    """Model for chat context and knowledge base"""
+    __tablename__ = "chat_context"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    context_key = Column(String(100), unique=True, index=True, nullable=False)
+    context_data = Column(JSON, nullable=False)  # Context information
+    expires_at = Column(DateTime, nullable=True)  # Optional expiration
+    is_persistent = Column(Boolean, default=False)  # Whether to persist across sessions
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_chat_context_context_key', 'context_key'),
+        Index('idx_chat_context_expires_at', 'expires_at'),
+        Index('idx_chat_context_is_persistent', 'is_persistent'),
+    )
+    
+    def __repr__(self):
+        return f"<ChatContext(id={self.id}, context_key='{self.context_key}')>"
+
+class ChatFeedback(Base, TimestampMixin):
+    """Model for chat feedback and ratings"""
+    __tablename__ = "chat_feedback"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    message_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=True)
+    rating = Column(Integer)  # 1-5 star rating
+    feedback_text = Column(Text)
+    is_helpful = Column(Boolean)  # True/False if response was helpful
+    
+    # Relationships
+    session = relationship("ChatSession")
+    message = relationship("ChatMessage")
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_chat_feedback_session_id', 'session_id'),
+        Index('idx_chat_feedback_message_id', 'message_id'),
+        Index('idx_chat_feedback_rating', 'rating'),
+        Index('idx_chat_feedback_created_at', 'created_at'),
+    )
+    
+    def __repr__(self):
+        return f"<ChatFeedback(id={self.id}, session_id={self.session_id}, rating={self.rating})>"

@@ -40,9 +40,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "react-intersection-observer": "^9.5.0",
     "react-virtual": "^2.10.0",
-    "@supabase/supabase-js": "^2.38.0",
-    "meilisearch": "^0.36.0",
-    "react-instantsearch": "^7.3.0"
+    "@supabase/supabase-js": "^2.38.0"
   },
   "devDependencies": {
     "typescript": "^5.2.0",

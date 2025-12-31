@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>United States Visa Information - Visa Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .nav-gradient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .visa-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .visa-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .visa-card.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+            border: 2px dashed #d1d5db;
+            min-height: 200px;
+        }
+        .drop-zone.dragover {
+            border-color: #f093fb;
+            background-color: #fdf2f8;
+            transform: scale(1.02);
+        }
+        .experience-card, .post-card, .group-card {
+            transition: all 0.3s ease;
+        }
+        .experience-card:hover, .post-card:hover, .group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .rating-star {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .rating-star:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="nav-gradient text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-pink-600 font-bold text-lg">V</span>
+                    </div>
+                    <span class="text-xl font-bold">Visa Platform</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="hover:text-pink-200 transition-colors">Home</a>
+                    <a href="countries.html" class="hover:text-pink-200 transition-colors">Countries</a>
+                    <a href="communities.html" class="hover:text-pink-200 transition-colors">Communities</a>
+                    <button class="bg-white text-pink-600 px-4 py-2 rounded-lg font-medium hover:bg-pink-50 transition-colors">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Country Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="flex items-center space-x-6">
+                <img src="https://flagcdn.com/w320/us.png" alt="United States" class="w-24 h-16 rounded-lg shadow-lg">
+                <div>
+                    <h1 class="text-4xl font-bold mb-2">🇺🇸 United States</h1>
+                    <p class="text-blue-100 text-lg">Complete visa information and community support</p>
+                    <div class="flex items-center space-x-4 mt-4">
+                        <span class="bg-blue-500 px-3 py-1 rounded-full text-sm">🎯 Most Popular</span>
+                        <span class="bg-green-500 px-3 py-1 rounded-full text-sm">📈 High Success Rate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex space-x-4 py-4">
+                <button onclick="switchTab('interview')" id="tab-interview" class="tab-button active px-6 py-3 rounded-lg font-semibold text-sm">
+                    📝 Interview Experiences
+                </button>
+                <button onclick="switchTab('posts')" id="tab-posts" class="tab-button px-6 py-3 rounded-lg font-semibold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    💬 Posts
+                </button>
+                <button onclick="switchTab('groups')" id="tab-groups" class="tab-button px-6 py-3 rounded-lg font-semibold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    👥 Groups
+                </button>
+                <button onclick="switchTab('visa')" id="tab-visa" class="tab-button px-6 py-3 rounded-lg font-semibold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    🛂 Visa Information
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+
+        <!-- Tab 1: Interview Experiences -->
+        <div id="content-interview" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Experience Form -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Share Your US Visa Interview Experience</h2>
+
+                        <!-- Basic Information -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Visa Type</label>
+                                <select id="visa-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                                    <option value="">Select Visa Type</option>
+                                    <option value="h1b">H1-B</option>
+                                    <option value="f1">F-1</option>
+                                    <option value="eb1">EB-1</option>
+                                    <option value="eb2">EB-2</option>
+                                    <option value="l1">L-1</option>
+                                    <option value="o1">O-1</option>
+                                    <option value="tourist">B1/B2 Tourist</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Interview Location</label>
+                                <input type="text" id="interview-location" placeholder="e.g., Mumbai, India" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Overall Experience Rating</label>
+                            <div class="flex space-x-2">
+                                <button onclick="setRating(1)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setRating(2)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setRating(3)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setRating(4)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setRating(5)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                            </div>
+                        </div>
+
+                        <!-- VO/Me Script Builder -->
+                        <div class="mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">VO/Me Script Builder</h3>
+                                <button onclick="clearAllBlocks()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Clear All
+                                </button>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-lg p-6 border">
+                                <div class="toolbar mb-4" style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="chip" draggable="true" data-role="VO" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #3b82f6; background: #eff6ff; cursor: grab; user-select: none; font-weight: 600;">VO</div>
+                                    <div class="chip" draggable="true" data-role="Me" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #10b981; background: #d1fae5; cursor: grab; user-select: none; font-weight: 600;">Me</div>
+                                </div>
+
+                                <div class="lane" id="vo-me-lane" style="min-height: 300px; border: 2px dashed #ccc; background: #f9f9f9; padding: 16px; border-radius: 8px;">
+                                    <p style="color:#999;margin:0;text-align:center;">Drag VO/Me here and start typing…</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post Button -->
+                        <div class="flex justify-center">
+                            <button onclick="postExperience()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-12 py-3 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 shadow-lg">
+                                Post Experience
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Posted Experiences -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 mt-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Your Posted Experiences</h2>
+                        <div id="posted-experiences" class="space-y-6">
+                            <div class="text-center text-gray-500 py-8">
+                                <p>No experiences posted yet. Share your first interview experience above!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Experiences Sidebar -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Recent US Experiences</h3>
+                        <div id="recent-experiences" class="space-y-4">
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★★</div>
+                                    <span class="ml-2 text-sm text-gray-600">H1-B</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">Great experience at Mumbai consulate. VO was very friendly and helpful.</p>
+                                <p class="text-xs text-gray-500">2 days ago</p>
+                            </div>
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★☆</div>
+                                    <span class="ml-2 text-sm text-gray-600">F-1</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">Interview went well. Questions were straightforward about my course.</p>
+                                <p class="text-xs text-gray-500">5 days ago</p>
+                            </div>
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★★</div>
+                                    <span class="ml-2 text-sm text-gray-600">EB-1</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">Smooth process at Delhi center. All documents verified quickly.</p>
+                                <p class="text-xs text-gray-500">1 week ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Posts -->
+        <div id="content-posts" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Posts Section -->
+                <div class="lg:col-span-2">
+                    <!-- Create Post Button -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-900">Create Post</h2>
+                            <button onclick="togglePostForm()" id="create-post-btn" class="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg">
+                                + Create Post
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Post Form (Hidden by default) -->
+                    <div id="post-form-container" class="bg-white rounded-xl shadow-lg p-8 mb-8" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Post Details</h3>
+
+                        <div class="grid grid-cols-1 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                                <div class="flex flex-wrap gap-2" id="tag-container">
+                                    <span class="tag-btn bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-blue-200 transition-colors" onclick="toggleTag(this, 'h1b')">H1-B</span>
+                                    <span class="tag-btn bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-green-200 transition-colors" onclick="toggleTag(this, 'f1')">F-1</span>
+                                    <span class="tag-btn bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-purple-200 transition-colors" onclick="toggleTag(this, 'eb1')">EB-1</span>
+                                    <span class="tag-btn bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-orange-200 transition-colors" onclick="toggleTag(this, 'eb2')">EB-2</span>
+                                    <span class="tag-btn bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-red-200 transition-colors" onclick="toggleTag(this, 'family')">Family</span>
+                                    <span class="tag-btn bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors" onclick="toggleTag(this, 'tourist')">Tourist</span>
+                                    <span class="tag-btn bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-yellow-200 transition-colors" onclick="toggleTag(this, 'general')">General</span>
+                                    <span class="tag-btn bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-indigo-200 transition-colors" onclick="toggleTag(this, 'success')">Success</span>
+                                </div>
+                                <input type="hidden" id="selected-tags" value="">
+                                <p class="text-xs text-gray-500 mt-2">Click tags to select/deselect them</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Post Title</label>
+                            <input type="text" id="post-title" placeholder="What's your post about?" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                            <textarea id="post-content" rows="4" placeholder="Share your thoughts, experiences, or questions..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"></textarea>
+                        </div>
+
+                        <!-- Content Builder -->
+                        <div class="mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Content Builder</h3>
+                                <button onclick="clearPostBlocks()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-4 border">
+                                <div class="toolbar mb-4" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div class="chip-post" draggable="true" data-type="tip" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #10b981; background: #fff; cursor: grab; user-select: none; font-size: 12px;">💡 Tip</div>
+                                    <div class="chip-post" draggable="true" data-type="question" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #3b82f6; background: #fff; cursor: grab; user-select: none; font-size: 12px;">❓ Question</div>
+                                    <div class="chip-post" draggable="true" data-type="experience" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #8b5cf6; background: #fff; cursor: grab; user-select: none; font-size: 12px;">📝 Experience</div>
+                                    <div class="chip-post" draggable="true" data-type="warning" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #ef4444; background: #fff; cursor: grab; user-select: none; font-size: 12px;">⚠️ Warning</div>
+                                </div>
+                                <div class="lane" id="post-content-lane" style="min-height: 120px; border: 2px dashed #ccc; background: #f9f9f9; padding: 12px; border-radius: 8px;">
+                                    <p style="color:#999;margin:0;text-align:center;font-size:14px;">Drag blocks here...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button onclick="togglePostForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
+                                Cancel
+                            </button>
+                            <button onclick="createPost()" class="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white px-8 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg">
+                                Create Post
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Supabase Posts Section -->
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">All Posts from Supabase</h3>
+                        
+                        <!-- Supabase Posts Container -->
+                        <div id="supabase-posts" class="space-y-4">
+                            <div class="text-center text-gray-500 py-8">
+                                <p>Loading posts from Supabase...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar with Relevant Posts -->
+                <div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Relevant Posts</h3>
+                        <div id="relevant-posts" class="space-y-4">
+                            <div class="post-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">H1-B</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 mb-2">H1B Cap Registration 2024</h4>
+                                <p class="text-sm text-gray-700 mb-2">How to register for H1B cap lottery?</p>
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <span>12 answers</span>
+                                    <span class="mx-2">•</span>
+                                    <span>2 days ago</span>
+                                </div>
+                            </div>
+                            <div class="post-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">EB-2</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 mb-2">PERM Processing Time</h4>
+                                <p class="text-sm text-gray-700 mb-2">Current processing times for PERM applications?</p>
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <span>8 answers</span>
+                                    <span class="mx-2">•</span>
+                                    <span>5 days ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Groups -->
+        <div id="content-groups" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Groups Section -->
+                <div>
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Create a US Immigration Group</h2>
+
+                        <div class="grid grid-cols-1 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Group Type</label>
+                                <select id="group-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                                    <option value="">Select Group Type</option>
+                                    <option value="h1b">H1-B Workers</option>
+                                    <option value="f1">F-1 Students</option>
+                                    <option value="eb1">EB-1 Applicants</option>
+                                    <option value="eb2">EB-2 Applicants</option>
+                                    <option value="family">Family Immigration</option>
+                                    <option value="general">General Immigration</option>
+                                    <option value="professional">Professional Network</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Group Name</label>
+                            <input type="text" id="group-name" placeholder="e.g., H1B Warriors 2024" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Group Description</label>
+                            <textarea id="group-description" rows="3" placeholder="Describe what your group is about..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"></textarea>
+                        </div>
+
+                        <!-- Features Builder -->
+                        <div class="mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Group Features</h3>
+                                <button onclick="clearGroupFeatures()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-4 border">
+                                <div class="toolbar mb-4" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div class="chip-group" draggable="true" data-feature="weekly-chat" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #10b981; background: #fff; cursor: grab; user-select: none; font-size: 12px;">💬 Weekly Chats</div>
+                                    <div class="chip-group" draggable="true" data-feature="mentorship" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #8b5cf6; background: #fff; cursor: grab; user-select: none; font-size: 12px;">🎯 Mentorship</div>
+                                    <div class="chip-group" draggable="true" data-feature="job-board" style="padding: 6px 12px; border-radius: 999px; border: 2px solid #f59e0b; background: #fff; cursor: grab; user-select: none; font-size: 12px;">💼 Job Board</div>
+                                </div>
+                                <div class="lane" id="group-features-lane" style="min-height: 120px; border: 2px dashed #ccc; background: #f9f9f9; padding: 12px; border-radius: 8px;">
+                                    <p style="color:#999;margin:0;text-align:center;font-size:14px;">Drag features here...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center">
+                            <button onclick="createGroup()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg">
+                                Create Group
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Your Groups -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mt-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Your Groups</h3>
+                        <div id="your-groups" class="space-y-4">
+                            <div class="text-center text-gray-500 py-8">
+                                <p>No groups created yet. Create your first group above!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popular Groups Sidebar -->
+                <div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Popular US Groups</h3>
+                        <div id="popular-groups" class="space-y-4">
+                            <div class="group-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">H1-B</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 mb-2">H1B Transfer Support</h4>
+                                <p class="text-sm text-gray-700 mb-2">Helping H1B workers navigate employer transfers.</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>2,847 members</span>
+                                    <button onclick="joinGroup(this)" class="text-blue-600 hover:text-blue-800 font-medium">Join</button>
+                                </div>
+                            </div>
+                            <div class="group-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">EB-2</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 mb-2">EB2 NIW Warriors</h4>
+                                <p class="text-sm text-gray-700 mb-2">National Interest Waiver applicants sharing strategies.</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>3,156 members</span>
+                                    <button onclick="joinGroup(this)" class="text-blue-600 hover:text-blue-800 font-medium">Join</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Visa Information -->
+        <div id="content-visa" class="tab-content">
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                <div class="bg-white p-6 rounded-lg shadow-sm border text-center">
+                    <div class="text-2xl font-bold text-blue-600 mb-2">2-6</div>
+                    <div class="text-sm text-gray-600">Months Processing</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border text-center">
+                    <div class="text-2xl font-bold text-green-600 mb-2">85-95%</div>
+                    <div class="text-sm text-gray-600">Success Rate</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border text-center">
+                    <div class="text-2xl font-bold text-purple-600 mb-2">$160-$2,805</div>
+                    <div class="text-sm text-gray-600">Visa Fees</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border text-center">
+                    <div class="text-2xl font-bold text-orange-600 mb-2">7</div>
+                    <div class="text-sm text-gray-600">Major Visa Types</div>
+                </div>
+            </div>
+
+            <!-- Visa Types Grid -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <svg class="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Popular US Visa Types
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- H1-B Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('h1b')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">H-1B Visa</h3>
+                            <span class="ml-auto text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Work</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">For skilled workers in specialty occupations</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">2-6 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$190</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">3 years</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- F-1 Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('f1')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">F-1 Visa</h3>
+                            <span class="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Student</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">For international students</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">2-4 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$160</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">Study period</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EB-1 Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('eb1')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">EB-1 Visa</h3>
+                            <span class="ml-auto text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Immigration</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">Priority workers & extraordinary ability</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">8-15 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$2,805</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">Permanent</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EB-2 Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('eb2')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">EB-2 Visa</h3>
+                            <span class="ml-auto text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Immigration</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">Advanced degree professionals</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">12-24 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$2,805</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">Permanent</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- L-1 Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('l1')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">L-1 Visa</h3>
+                            <span class="ml-auto text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">Work</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">Intra-company transfers</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">1-4 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$190</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">1-7 years</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- O-1 Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('o1')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-pink-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">O-1 Visa</h3>
+                            <span class="ml-auto text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded">Work</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">Individuals with extraordinary ability</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">2-4 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$190</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">3 years</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tourist Visa -->
+                    <div class="visa-card bg-white p-6 rounded-lg shadow-sm border" onclick="selectVisa('tourist')">
+                        <div class="flex items-center mb-4">
+                            <div class="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-900">B1/B2 Tourist</h3>
+                            <span class="ml-auto text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">Tourist</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">Business & tourism visits</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Processing:</span>
+                                <span class="font-medium">3-5 days</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Fee:</span>
+                                <span class="font-medium">$160</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Validity:</span>
+                                <span class="font-medium">10 years</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area for selected visa -->
+            <div id="visa-content-area" class="bg-white rounded-lg shadow-sm border p-8">
+                <div class="text-center py-12">
+                    <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Select a Visa Type Above</h3>
+                    <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+                        Click on any visa type to view detailed information, requirements, and community experiences.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Related Communities -->
+            <div class="mt-12 bg-gray-100 rounded-lg p-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Related US Immigration Communities</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="font-semibold text-gray-900 mb-2">🇺🇸 H1B Workers Network</h4>
+                        <p class="text-gray-600 text-sm mb-4">Support for H1-B visa holders and applicants</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500">4,523 members</span>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors">Join</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="font-semibold text-gray-900 mb-2">🎓 F1 Students Hub</h4>
+                        <p class="text-gray-600 text-sm mb-4">Student visa holders and applicants</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500">3,892 members</span>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors">Join</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="font-semibold text-gray-900 mb-2">🏆 EB Immigration Champions</h4>
+                        <p class="text-gray-600 text-sm mb-4">Employment-based immigration discussions</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500">2,734 members</span>
+                            <button class="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700 transition-colors">Join</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-pink-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">V</span>
+                        </div>
+                        <span class="text-xl font-bold">Visa Platform</span>
+                    </div>
+                    <p class="text-gray-400">
+                        Your trusted partner for global visa information and immigration guidance.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="countries.html" class="hover:text-white transition-colors">All Countries</a></li>
+                        <li><a href="communities.html" class="hover:text-white transition-colors">Communities</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Popular Countries</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="country-usa.html" class="hover:text-white transition-colors">United States</a></li>
+                        <li><a href="country-canada.html" class="hover:text-white transition-colors">Canada</a></li>
+                        <li><a href="country-uk.html" class="hover:text-white transition-colors">United Kingdom</a></li>
+                        <li><a href="country-australia.html" class="hover:text-white transition-colors">Australia</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="help.html" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="privacy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>© 2024 Visa Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentRating = 0;
+        let postedExperiences = [];
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`content-${tabName}`).classList.add('active');
+        }
+
+        // Rating functionality
+        function setRating(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.className = 'rating-star text-3xl text-yellow-400 transition-colors';
+                } else {
+                    star.className = 'rating-star text-3xl text-gray-300 transition-colors';
+                }
+            });
+        }
+
+        // VO/Me Form functionality
+        function initVOMeForm() {
+            const lane = document.getElementById('vo-me-lane');
+            if (!lane) return;
+
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', chip.dataset.role);
+                });
+            });
+
+            lane.addEventListener('dragover', e => {
+                e.preventDefault();
+            });
+
+            lane.addEventListener('drop', e => {
+                e.preventDefault();
+                const role = e.dataTransfer.getData('text/plain');
+                if (!role) return;
+                addBlock(role, lane, 'vo-me');
+            });
+        }
+
+        function addBlock(role, lane, type) {
+            const p = lane.querySelector('p');
+            if (p) p.remove();
+
+            const block = document.createElement('div');
+            block.className = 'block';
+            block.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-start;';
+
+            const label = document.createElement('div');
+            label.className = 'block-label';
+            const bgColor = role === 'VO' ? '#eff6ff' : '#d1fae5';
+            const borderColor = role === 'VO' ? '#3b82f6' : '#10b981';
+            label.style.cssText = `min-width: 48px; padding: 6px 10px; border-radius: 999px; border: 2px solid ${borderColor}; background: ${bgColor}; text-align: center; font-weight: 600;`;
+            label.textContent = role;
+
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = `Type ${role} text here…`;
+            textarea.style.cssText = 'flex: 1; min-height: 80px; resize: vertical; padding: 8px; border: 1px solid #ccc; border-radius: 4px;';
+
+            block.appendChild(label);
+            block.appendChild(textarea);
+            lane.appendChild(block);
+        }
+
+        function clearAllBlocks() {
+            const lane = document.getElementById('vo-me-lane');
+            lane.innerHTML = '<p style="color:#999;margin:0;text-align:center;">Drag VO/Me here and start typing…</p>';
+        }
+
+        // Post Experience
+        function postExperience() {
+            const visaType = document.getElementById('visa-type').value;
+            const location = document.getElementById('interview-location').value;
+            const blocks = document.querySelectorAll('#vo-me-lane .block');
+
+            if (!visaType || !location || blocks.length === 0) {
+                alert('Please fill all required fields and add at least one VO/Me block.');
+                return;
+            }
+
+            const payload = [];
+            blocks.forEach(block => {
+                const role = block.querySelector('.block-label').textContent;
+                const text = block.querySelector('textarea').value;
+                if (text.trim().length > 0) {
+                    payload.push({ role, text });
+                }
+            });
+
+            if (payload.length === 0) {
+                alert('Please add text content to at least one block.');
+                return;
+            }
+
+            const experience = {
+                visaType,
+                location,
+                rating: currentRating,
+                script: payload,
+                timestamp: new Date().toLocaleDateString()
+            };
+
+            postedExperiences.push(experience);
+            displayPostedExperience(experience);
+
+            document.getElementById('visa-type').value = '';
+            document.getElementById('interview-location').value = '';
+            setRating(0);
+            clearAllBlocks();
+
+            alert('Experience posted successfully!');
+        }
+
+        function displayPostedExperience(experience) {
+            const container = document.getElementById('posted-experiences');
+            const emptyState = container.querySelector('.text-center.text-gray-500');
+            if (emptyState) emptyState.remove();
+
+            const stars = '★'.repeat(experience.rating) + '☆'.repeat(5 - experience.rating);
+            const div = document.createElement('div');
+            div.className = 'bg-gray-50 p-6 rounded-lg border';
+            div.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-yellow-400">${stars}</span>
+                        <span class="text-sm font-medium text-gray-600">${experience.visaType.toUpperCase()}</span>
+                        <span class="text-sm text-gray-500">• ${experience.location}</span>
+                    </div>
+                    <span class="text-xs text-gray-400">${experience.timestamp}</span>
+                </div>
+                <div class="space-y-4">
+                    ${experience.script.map(block => {
+                        const colorClass = block.role === 'VO' ? 'blue' : 'green';
+                        return `
+                            <div class="bg-${colorClass}-50 p-4 rounded-lg border-l-4 border-${colorClass}-500">
+                                <h4 class="font-semibold text-${colorClass}-900 mb-2">${block.role}</h4>
+                                <p class="text-${colorClass}-800">${block.text}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            container.insertBefore(div, container.firstChild);
+        }
+
+        // Posts functionality
+        function initPostBuilder() {
+            const lane = document.getElementById('post-content-lane');
+            if (!lane) return;
+
+            document.querySelectorAll('.chip-post').forEach(chip => {
+                chip.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', chip.dataset.type);
+                });
+            });
+
+            lane.addEventListener('dragover', e => e.preventDefault());
+            lane.addEventListener('drop', e => {
+                e.preventDefault();
+                const type = e.dataTransfer.getData('text/plain');
+                if (!type) return;
+                addPostBlock(type);
+            });
+        }
+
+        function addPostBlock(type) {
+            const lane = document.getElementById('post-content-lane');
+            const p = lane.querySelector('p');
+            if (p) p.remove();
+
+            const labels = { tip: '💡 Tip', question: '❓ Question', experience: '📝 Experience', warning: '⚠️ Warning' };
+            const block = document.createElement('div');
+            block.className = 'block';
+            block.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-start;';
+
+            const label = document.createElement('div');
+            label.className = 'block-label';
+            label.style.cssText = 'min-width: 80px; padding: 6px 10px; border-radius: 999px; border: 2px solid #111; background: #eee; text-align: center; font-weight: 600; font-size: 12px;';
+            label.textContent = labels[type] || type;
+
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = `Add ${labels[type].toLowerCase()} content...`;
+            textarea.style.cssText = 'flex: 1; min-height: 60px; resize: vertical; padding: 8px; border: 1px solid #ccc; border-radius: 4px;';
+
+            block.appendChild(label);
+            block.appendChild(textarea);
+            lane.appendChild(block);
+        }
+
+        function clearPostBlocks() {
+            const lane = document.getElementById('post-content-lane');
+            lane.innerHTML = '<p style="color:#999;margin:0;text-align:center;font-size:14px;">Drag blocks here...</p>';
+        }
+
+        function createPost() {
+            const category = document.getElementById('post-category').value;
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+
+            if (!category || !title || !content) {
+                alert('Please fill all required fields.');
+                return;
+            }
+
+            document.getElementById('post-category').value = '';
+            document.getElementById('post-title').value = '';
+            document.getElementById('post-content').value = '';
+            clearPostBlocks();
+
+            alert('Post created successfully for United States!');
+        }
+
+        // Groups functionality
+        function initGroupBuilder() {
+            const lane = document.getElementById('group-features-lane');
+            if (!lane) return;
+
+            document.querySelectorAll('.chip-group').forEach(chip => {
+                chip.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', chip.dataset.feature);
+                });
+            });
+
+            lane.addEventListener('dragover', e => e.preventDefault());
+            lane.addEventListener('drop', e => {
+                e.preventDefault();
+                const feature = e.dataTransfer.getData('text/plain');
+                if (!feature) return;
+                addGroupFeature(feature);
+            });
+        }
+
+        function addGroupFeature(feature) {
+            const lane = document.getElementById('group-features-lane');
+            const p = lane.querySelector('p');
+            if (p) p.remove();
+
+            const labels = { 'weekly-chat': '💬 Weekly Chats', 'mentorship': '🎯 Mentorship', 'job-board': '💼 Job Board' };
+            const block = document.createElement('div');
+            block.className = 'feature-block';
+            block.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-start;';
+
+            const label = document.createElement('div');
+            label.className = 'feature-label';
+            label.style.cssText = 'min-width: 100px; padding: 6px 10px; border-radius: 999px; border: 2px solid #111; background: #eee; text-align: center; font-weight: 600; font-size: 12px;';
+            label.textContent = labels[feature] || feature;
+
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = `Describe ${labels[feature]}...`;
+            textarea.style.cssText = 'flex: 1; min-height: 60px; resize: vertical; padding: 8px; border: 1px solid #ccc; border-radius: 4px;';
+
+            block.appendChild(label);
+            block.appendChild(textarea);
+            lane.appendChild(block);
+        }
+
+        function clearGroupFeatures() {
+            const lane = document.getElementById('group-features-lane');
+            lane.innerHTML = '<p style="color:#999;margin:0;text-align:center;font-size:14px;">Drag features here...</p>';
+        }
+
+        function createGroup() {
+            const type = document.getElementById('group-type').value;
+            const name = document.getElementById('group-name').value;
+            const description = document.getElementById('group-description').value;
+
+            if (!type || !name || !description) {
+                alert('Please fill all required fields.');
+                return;
+            }
+
+            document.getElementById('group-type').value = '';
+            document.getElementById('group-name').value = '';
+            document.getElementById('group-description').value = '';
+            clearGroupFeatures();
+
+            alert('Group created successfully for United States!');
+        }
+
+        function joinGroup(button) {
+            button.textContent = 'Joined';
+            button.classList.remove('text-blue-600', 'hover:text-blue-800');
+            button.classList.add('text-green-600', 'cursor-not-allowed');
+            button.disabled = true;
+        }
+
+        // Visa selection
+        const visaData = {
+            h1b: {
+                name: 'H-1B Visa',
+                content: `
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-blue-900 mb-2">H-1B Visa Details</h3>
+                        <p class="text-blue-700">For skilled workers in specialty occupations requiring theoretical or technical expertise</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Key Requirements:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Bachelor's degree or higher</li>
+                                <li>• Job offer from US employer</li>
+                                <li>• Labor Condition Application (LCA)</li>
+                                <li>• Specialty occupation definition</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Processing Timeline:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Regular processing: 2-6 months</li>
+                                <li>• Premium processing: 15 days</li>
+                                <li>• Annual cap: 85,000 visas</li>
+                                <li>• Cap-exempt employers available</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            f1: {
+                name: 'F-1 Visa',
+                content: `
+                    <div class="bg-green-50 border-l-4 border-green-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-green-900 mb-2">F-1 Student Visa Details</h3>
+                        <p class="text-green-700">For international students pursuing academic studies at US institutions</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Key Requirements:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• I-20 form from SEVP school</li>
+                                <li>• Proof of financial support</li>
+                                <li>• Ties to home country</li>
+                                <li>• English proficiency</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Study Benefits:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Optional Practical Training (OPT)</li>
+                                <li>• Curricular Practical Training (CPT)</li>
+                                <li>• 12-month work authorization</li>
+                                <li>• STEM extension available</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            eb1: {
+                name: 'EB-1 Visa',
+                content: `
+                    <div class="bg-orange-50 border-l-4 border-orange-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-orange-900 mb-2">EB-1 Visa Details</h3>
+                        <p class="text-orange-700">For priority workers with extraordinary abilities</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Categories:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Extraordinary ability (E11)</li>
+                                <li>• Outstanding professors (E12)</li>
+                                <li>• Multinational managers (E13)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Advantages:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• No labor certification</li>
+                                <li>• Direct permanent residency</li>
+                                <li>• Priority processing</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            eb2: {
+                name: 'EB-2 Visa',
+                content: `
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-purple-900 mb-2">EB-2 Visa Details</h3>
+                        <p class="text-purple-700">For advanced degree professionals</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Categories:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Advanced degree (E21)</li>
+                                <li>• Exceptional ability (E21)</li>
+                                <li>• National interest waiver (NIW)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">NIW Benefits:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• No job offer required</li>
+                                <li>• Self-petition possible</li>
+                                <li>• Flexible requirements</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            l1: {
+                name: 'L-1 Visa',
+                content: `
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-indigo-900 mb-2">L-1 Visa Details</h3>
+                        <p class="text-indigo-700">For intra-company transfers</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">L-1 Categories:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• L-1A: Managers/Executives</li>
+                                <li>• L-1B: Specialized knowledge</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Requirements:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• 1 year continuous employment</li>
+                                <li>• Same company relationship</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            o1: {
+                name: 'O-1 Visa',
+                content: `
+                    <div class="bg-pink-50 border-l-4 border-pink-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-pink-900 mb-2">O-1 Visa Details</h3>
+                        <p class="text-pink-700">For individuals with extraordinary ability</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">O-1 Categories:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• O-1A: Extraordinary ability</li>
+                                <li>• O-1B: Extraordinary achievement</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Criteria:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• National/international acclaim</li>
+                                <li>• Documentary evidence required</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            tourist: {
+                name: 'B1/B2 Tourist Visa',
+                content: `
+                    <div class="bg-gray-50 border-l-4 border-gray-500 p-6 mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">B1/B2 Tourist Visa Details</h3>
+                        <p class="text-gray-700">For temporary visits for business or pleasure</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">B1 Business:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Business meetings</li>
+                                <li>• Conferences</li>
+                                <li>• Negotiations</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">B2 Tourism:</h4>
+                            <ul class="space-y-2 text-gray-700">
+                                <li>• Tourism</li>
+                                <li>• Visiting family/friends</li>
+                                <li>• Medical treatment</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        function selectVisa(visaType) {
+            document.querySelectorAll('.visa-card').forEach(card => card.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            const contentArea = document.getElementById('visa-content-area');
+            const visa = visaData[visaType];
+
+            if (visa) {
+                contentArea.innerHTML = `
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">${visa.name}</h2>
+                    ${visa.content}
+                `;
+            }
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initVOMeForm();
+            initPostBuilder();
+            initGroupBuilder();
+            
+            // Load Supabase posts
+            loadSupabasePosts();
+        });
+
+        // Load Supabase posts from MCP
+        async function loadSupabasePosts() {
+            try {
+                const response = await fetch('/api/mcp/get_posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        category: '',
+                        sort: 'newest',
+                        search: '',
+                        limit: 10,
+                        offset: 0,
+                        country: 'usa'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.isError) {
+                    throw new Error(result.content[0].text);
+                }
+
+                const posts = result.posts || [];
+                displaySupabasePosts(posts);
+                
+                // Load relevant posts for sidebar
+                if (posts.length > 0) {
+                    loadRelevantPosts(posts[0].id);
+                }
+                
+            } catch (error) {
+                console.error('Error loading Supabase posts:', error);
+                const container = document.getElementById('supabase-posts');
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">Failed to load posts. Please try again later.</div>';
+            }
+        }
+
+        function displaySupabasePosts(posts) {
+            const container = document.getElementById('supabase-posts');
+            
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">No posts found. Be the first to create one!</div>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="post-card bg-white rounded-lg shadow-sm border p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-blue-600 font-semibold">${getAuthorInitials(post.author?.name || 'U')}</span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer" onclick="viewPost(${post.id})">${post.title}</h4>
+                                <div class="text-sm text-gray-600">
+                                    <span>by ${post.author?.name || 'Unknown'}</span>
+                                    <span class="mx-2">•</span>
+                                    <span>${getTimeAgo(post.created_at)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">${post.community?.name || 'General'}</span>
+                        </div>
+                    </div>
+                    <div class="text-gray-700 mb-4 line-clamp-3">
+                        ${post.content}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            <span>💬 ${post.comment_count || 0} answers</span>
+                            <span>👁️ ${post.view_count || 0} views</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="votePost(${post.id}, 1)" class="text-gray-500 hover:text-green-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                </svg>
+                            </button>
+                            <span class="text-lg font-semibold text-gray-700">${post.like_count || 0}</span>
+                            <button onclick="votePost(${post.id}, -1)" class="text-gray-500 hover:text-red-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <button onclick="sharePost(${post.id})" class="text-gray-500 hover:text-gray-700 text-sm">
+                                Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadRelevantPosts(postId) {
+            try {
+                const response = await fetch('/api/mcp/get_similar_posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        limit: 5
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.isError) {
+                    throw new Error(result.content[0].text);
+                }
+
+                const relevantPosts = result.similar_posts || [];
+                displayRelevantPosts(relevantPosts);
+                
+            } catch (error) {
+                console.error('Error loading relevant posts:', error);
+            }
+        }
+
+        function displayRelevantPosts(posts) {
+            const container = document.getElementById('relevant-posts');
+            
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4">No relevant posts found.</div>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="post-card p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer" onclick="viewPost(${post.id})">
+                    <div class="flex items-center mb-2">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">${post.community?.name || 'General'}</span>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">${post.title}</h4>
+                    <div class="text-xs text-gray-600">
+                        <span>💬 ${post.comment_count || 0} answers</span>
+                        <span class="mx-2">•</span>
+                        <span>${getTimeAgo(post.created_at)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getAuthorInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function getTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return 'just now';
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        async function viewPost(postId) {
+            try {
+                const response = await fetch('/api/mcp/get_post_by_id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.isError) {
+                    throw new Error(result.content[0].text);
+                }
+
+                const post = result.post;
+                const comments = result.comments || [];
+
+                // Create a modal or navigate to a detail page
+                alert(`Viewing post: ${post.title}\n\nComments: ${comments.length}`);
+                
+            } catch (error) {
+                console.error('Error viewing post:', error);
+                alert('Failed to load post details.');
+            }
+        }
+
+        async function votePost(postId, value) {
+            try {
+                const response = await fetch('/api/mcp/vote_post', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        vote_type: value === 1 ? 'up' : 'down',
+                        user_id: 1 // Demo user
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.isError) {
+                    throw new Error(result.content[0].text);
+                }
+                
+                // Reload posts to show updated vote count
+                loadSupabasePosts();
+            } catch (error) {
+                console.error('Error voting:', error);
+                alert('Failed to vote. Please try again.');
+            }
+        }
+
+        async function sharePost(postId) {
+            try {
+                const response = await fetch('/api/mcp/get_post_by_id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.isError) {
+                    throw new Error(result.content[0].text);
+                }
+
+                const post = result.post;
+                const shareUrl = `${window.location.origin}/post/${postId}`;
+                
+                if (navigator.share) {
+                    await navigator.share({
+                        title: post.title,
+                        text: post.content.substring(0, 100) + '...',
+                        url: shareUrl
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        alert('Link copied to clipboard!');
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error sharing post:', error);
+                alert('Failed to share post.');
+            }
+        }
+
+        // New functions for tag functionality and form toggle
+        function togglePostForm() {
+            const formContainer = document.getElementById('post-form-container');
+            const createBtn = document.getElementById('create-post-btn');
+            
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                createBtn.textContent = 'Cancel';
+                createBtn.classList.remove('bg-gradient-to-r', 'from-green-500', 'to-teal-600', 'hover:from-green-600', 'hover:to-teal-700');
+                createBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            } else {
+                formContainer.style.display = 'none';
+                createBtn.textContent = '+ Create Post';
+                createBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                createBtn.classList.add('bg-gradient-to-r', 'from-green-500', 'to-teal-600', 'hover:from-green-600', 'hover:to-teal-700');
+            }
+        }
+
+        function toggleTag(element, tagValue) {
+            const selectedTagsInput = document.getElementById('selected-tags');
+            const currentTags = selectedTagsInput.value.split(',').filter(tag => tag.trim());
+            
+            if (element.classList.contains('bg-blue-200')) {
+                // Remove tag
+                element.classList.remove('bg-blue-200');
+                element.classList.add('bg-blue-100');
+                const index = currentTags.indexOf(tagValue);
+                if (index > -1) {
+                    currentTags.splice(index, 1);
+                }
+            } else {
+                // Add tag
+                element.classList.remove('bg-blue-100');
+                element.classList.add('bg-blue-200');
+                if (!currentTags.includes(tagValue)) {
+                    currentTags.push(tagValue);
+                }
+            }
+            
+            selectedTagsInput.value = currentTags.join(',');
+        }
+    </script>
+</body>
+</html>
