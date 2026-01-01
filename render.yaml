@@ -1,0 +1,128 @@
+# PostHog Self-Hosted Deployment Configuration for Render
+# This file deploys PostHog on Render's free tier for $0 cost
+
+services:
+  - type: web
+    name: posthog
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: |
+      gunicorn posthog.wsgi --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: posthog-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: posthog-redis
+          property: connectionString
+      - key: CLICKHOUSE_SERVER_URL
+        fromService:
+          type: web
+          name: posthog-clickhouse
+          property: host
+      - key: DISABLE_SECURE_SSL_REDIRECT
+        value: "true"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: DEBUG
+        value: "false"
+      - key: EMAIL_HOST
+        value: "smtp.gmail.com"
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "true"
+      - key: POSTHOG_POSTHOG_REDIS_HOST
+        fromService:
+          type: redis
+          name: posthog-redis
+          property: host
+      - key: POSTHOG_POSTHOG_REDIS_PORT
+        fromService:
+          type: redis
+          name: posthog-redis
+          property: port
+      - key: POSTHOG_POSTHOG_REDIS_DB
+        value: "0"
+      - key: POSTHOG_POSTHOG_REDIS_PASSWORD
+        fromService:
+          type: redis
+          name: posthog-redis
+          property: password
+      - key: POSTHOG_POSTHOG_DB
+        fromDatabase:
+          name: posthog-db
+          property: connectionString
+      - key: POSTHOG_POSTHOG_CLICKHOUSE_SERVER_URL
+        fromService:
+          type: web
+          name: posthog-clickhouse
+          property: host
+      - key: POSTHOG_POSTHOG_CLICKHOUSE_USER
+        value: "default"
+      - key: POSTHOG_POSTHOG_CLICKHOUSE_PASSWORD
+        value: ""
+      - key: POSTHOG_POSTHOG_CLICKHOUSE_DATABASE
+        value: "posthog"
+      - key: SESSION_COOKIE_SECURE
+        value: "false"
+      - key: CSRF_COOKIE_SECURE
+        value: "false"
+      - key: SECURE_PROXY_SSL_HEADER
+        value: "HTTP_X_FORWARDED_PROTO,https"
+      - key: ENABLE_WEB_ANALYTICS
+        value: "true"
+      - key: WEB_ANALYTICS_CONFIG
+        value: '{"recordings": {"enabled": true}, "autocapture": {"enabled": true}, "console_logs": {"enabled": true}}'
+
+  - type: web
+    name: posthog-clickhouse
+    env: docker
+    plan: free
+    dockerfilePath: ./docker/clickhouse/Dockerfile.clickhouse
+    healthCheckPath: /
+    envVars:
+      - key: CLICKHOUSE_DB
+        value: "posthog"
+      - key: CLICKHOUSE_USER
+        value: "default"
+      - key: CLICKHOUSE_PASSWORD
+        value: ""
+      - key: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+        value: "1"
+    disk:
+      name: posthog-clickhouse-disk
+      sizeGB: 1
+
+databases:
+  - name: posthog-db
+    plan: free
+    databaseName: posthog
+    user: posthog
+
+redis:
+  - name: posthog-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+
+disks:
+  - name: posthog-clickhouse-disk
+    sizeGB: 1
+    mountPath: /var/lib/clickhouse
+
+networks:
+  - name: posthog-network
+    subnet: 172.20.0.0/16

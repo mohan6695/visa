@@ -28,6 +28,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [activeUserCount, setActiveUserCount] = useState(0);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);

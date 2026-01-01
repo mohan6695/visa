@@ -145,7 +145,7 @@
                 <!-- Experience Form -->
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-xl shadow-lg p-8">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Share Your US Visa Interview Experience</h2>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Interview Experience</h2>
 
                         <!-- Basic Information -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -183,7 +183,7 @@
                         <!-- VO/Me Script Builder -->
                         <div class="mb-8">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">VO/Me Script Builder</h3>
+                                <h3 class="text-lg font-semibold text-gray-900">Experience</h3>
                                 <button onclick="clearAllBlocks()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                     Clear All
                                 </button>
@@ -192,6 +192,7 @@
                                 <div class="toolbar mb-4" style="display: flex; align-items: center; gap: 12px;">
                                     <div class="chip" draggable="true" data-role="VO" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #3b82f6; background: #eff6ff; cursor: grab; user-select: none; font-weight: 600;">VO</div>
                                     <div class="chip" draggable="true" data-role="Me" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #10b981; background: #d1fae5; cursor: grab; user-select: none; font-weight: 600;">Me</div>
+                                    <div class="chip" draggable="true" data-role="Free Text" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #8b5cf6; background: #f3e8ff; cursor: grab; user-select: none; font-weight: 600;">Free Text</div>
                                 </div>
 
                                 <div class="lane" id="vo-me-lane" style="min-height: 300px; border: 2px dashed #ccc; background: #f9f9f9; padding: 16px; border-radius: 8px;">
@@ -247,6 +248,122 @@
                                 </div>
                                 <p class="text-sm text-gray-700 mb-2">Smooth process at Delhi center. All documents verified quickly.</p>
                                 <p class="text-xs text-gray-500">1 week ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 1: Immigration Experiences -->
+        <div id="content-immigration" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Immigration Experience Form -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Immigration Experience</h2>
+
+                        <!-- Basic Information -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Visa Type</label>
+                                <select id="immigration-visa-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                                    <option value="">Select Visa Type</option>
+                                    <option value="h1b">H1-B</option>
+                                    <option value="f1">F-1</option>
+                                    <option value="eb1">EB-1</option>
+                                    <option value="eb2">EB-2</option>
+                                    <option value="l1">L-1</option>
+                                    <option value="o1">O-1</option>
+                                    <option value="tourist">B1/B2 Tourist</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Experience Location</label>
+                                <input type="text" id="immigration-location" placeholder="e.g., Mumbai, India" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Overall Experience Rating</label>
+                            <div class="flex space-x-2">
+                                <button onclick="setImmigrationRating(1)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setImmigrationRating(2)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setImmigrationRating(3)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setImmigrationRating(4)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                                <button onclick="setImmigrationRating(5)" class="rating-star text-3xl text-gray-300 hover:text-yellow-400 transition-colors">★</button>
+                            </div>
+                        </div>
+
+                        <!-- Experience Builder -->
+                        <div class="mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Experience</h3>
+                                <button onclick="clearImmigrationBlocks()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Clear All
+                                </button>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-lg p-6 border">
+                                <div class="toolbar mb-4" style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="chip" draggable="true" data-role="IO" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #3b82f6; background: #eff6ff; cursor: grab; user-select: none; font-weight: 600;">IO</div>
+                                    <div class="chip" draggable="true" data-role="Me" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #10b981; background: #d1fae5; cursor: grab; user-select: none; font-weight: 600;">Me</div>
+                                    <div class="chip" draggable="true" data-role="Free Text" style="padding: 8px 16px; border-radius: 999px; border: 2px solid #8b5cf6; background: #f3e8ff; cursor: grab; user-select: none; font-weight: 600;">Free Text</div>
+                                </div>
+
+                                <div class="lane" id="immigration-lane" style="min-height: 300px; border: 2px dashed #ccc; background: #f9f9f9; padding: 16px; border-radius: 8px;">
+                                    <p style="color:#999;margin:0;text-align:center;">Drag IO/Me/Free Text here and start typing…</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post Button -->
+                        <div class="flex justify-center">
+                            <button onclick="postImmigrationExperience()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-12 py-3 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 shadow-lg">
+                                Post Immigration Experience
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Posted Immigration Experiences -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 mt-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Your Posted Immigration Experiences</h2>
+                        <div id="posted-immigration-experiences" class="space-y-6">
+                            <div class="text-center text-gray-500 py-8">
+                                <p>No immigration experiences posted yet. Share your first immigration experience above!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Immigration Experiences Sidebar -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Recent US Immigration Experiences</h3>
+                        <div id="recent-immigration-experiences" class="space-y-4">
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★★</div>
+                                    <span class="ml-2 text-sm text-gray-600">EB-2</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">Smooth immigration process at Delhi center. IO was very helpful and efficient.</p>
+                                <p class="text-xs text-gray-500">3 days ago</p>
+                            </div>
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★☆</div>
+                                    <span class="ml-2 text-sm text-gray-600">H1-B</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">Transfer process went well. All documents verified quickly and efficiently.</p>
+                                <p class="text-xs text-gray-500">1 week ago</p>
+                            </div>
+                            <div class="experience-card p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400">★★★★★</div>
+                                    <span class="ml-2 text-sm text-gray-600">F-1</span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">OPT application process was straightforward and well-guided.</p>
+                                <p class="text-xs text-gray-500">2 weeks ago</p>
                             </div>
                         </div>
                     </div>
@@ -852,9 +969,18 @@
 
             const label = document.createElement('div');
             label.className = 'block-label';
-            const bgColor = role === 'VO' ? '#eff6ff' : '#d1fae5';
-            const borderColor = role === 'VO' ? '#3b82f6' : '#10b981';
-            label.style.cssText = `min-width: 48px; padding: 6px 10px; border-radius: 999px; border: 2px solid ${borderColor}; background: ${bgColor}; text-align: center; font-weight: 600;`;
+            let bgColor, borderColor;
+            if (role === 'VO') {
+                bgColor = '#eff6ff';
+                borderColor = '#3b82f6';
+            } else if (role === 'Me') {
+                bgColor = '#d1fae5';
+                borderColor = '#10b981';
+            } else if (role === 'Free Text') {
+                bgColor = '#f3e8ff';
+                borderColor = '#8b5cf6';
+            }
+            label.style.cssText = `min-width: 80px; padding: 6px 10px; border-radius: 999px; border: 2px solid ${borderColor}; background: ${bgColor}; text-align: center; font-weight: 600;`;
             label.textContent = role;
 
             const textarea = document.createElement('textarea');
@@ -934,7 +1060,11 @@
                 </div>
                 <div class="space-y-4">
                     ${experience.script.map(block => {
-                        const colorClass = block.role === 'VO' ? 'blue' : 'green';
+                        let colorClass;
+                        if (block.role === 'VO') colorClass = 'blue';
+                        else if (block.role === 'Me') colorClass = 'green';
+                        else if (block.role === 'Free Text') colorClass = 'purple';
+                        else colorClass = 'gray';
                         return `
                             <div class="bg-${colorClass}-50 p-4 rounded-lg border-l-4 border-${colorClass}-500">
                                 <h4 class="font-semibold text-${colorClass}-900 mb-2">${block.role}</h4>

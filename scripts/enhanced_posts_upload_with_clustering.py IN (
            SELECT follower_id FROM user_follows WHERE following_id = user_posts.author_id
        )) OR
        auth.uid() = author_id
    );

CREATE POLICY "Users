@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""
+Enhanced Posts Upload with pgvector Clustering
+Uploads posts.json from Downloads to Supabase with semantic clustering
+"""
+
+import json
+import os
+import uuid
+import time
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+from supabase import create_client, Client
+import openai
+ can create their own posts" ON user_posts
+    FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Users can update their own posts" ON user_posts
+    FOR UPDATEfrom dotenv import load_dotenv
+import hashlib
+import re
+
+# Load environment variables
+load_dotenv()
+
+# Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Initialize clients
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+openai.api_key = OPENAI_API_KEY
+
+def load_posts_from_json(file_path: str) -> List[Dict[str, Any]]:
+    """Load posts from JSON file"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        print(f"✅ Loaded {len(data)} posts from {file_path}")
+        return data
+    except Exception as e:
+        print(f"❌ Error loading posts from {file_path}: {e}")
+        return []
+
+def clean_text(text: str) -> str:
+    """Clean and normalize text"""
+    if not text:
+        return ""
+    
+    # Remove extra whitespace and normalize
+    text = re.sub(r'\s+', ' ', text.strip())
+    
+    # Remove special characters that might interfere
+    text = re.sub(r'[^\w\s.,!?;:\-\'"]', '', text)
+    
+    return text
+
+def generate_embedding(text: str) -> Optional[List[float]]:
+    """Generate embedding using OpenAI API"""
+    try:
+        # Clean the text first
+        clean_text_content = clean_text(text)
+        
+        if not clean_text_content or len(clean_text_content.strip()) < 10:
+            print("⚠️  Text too short for embedding generation")
+            return None
+            
+        response = openai.Embedding.create(
+            input=clean_text_content,
+            model="text-embedding-3-small"  # 1536 dimensions
+        )
+        embedding = response['data'][0]['embedding']
+        print(f"✅ Generated embedding for text of length {len(clean_text_content)}")
+        return embedding
+        
+    except Exception as e:
+        print(f"❌ Error generating embedding: {e}")
+        return None
+
+def determine_country_from_content(content: str, title: str) -> str:
+    """Determine country from post content"""
+    text = f"{title} {content}".lower()
+    
+    if any(keyword in text for keyword in ['usa', 'united states', 'america', 'h1b', 'us ', 'uscis']):
+        return "USA"
+    elif any(keyword in text for keyword in ['canada', 'ca ', 'cic']):
+        return "Canada"
+    elif any(keyword in text for keyword in ['australia', 'au ', 'immi']):
+        return "Australia"
+    elif any(keyword in text for keyword in ['uk', 'united kingdom', 'britain', 'gb ']):
+        return "United Kingdom"
+    else:
+        return "USA"  # Default to USA
+
+def extract_tags_from_content(content: str, title: str) -> List[str USING (auth.uid() = author_id);
+
+CREATE POLICY "Users can delete their own posts" ON user_posts
+    FOR DELETE USING (auth.uid() = author_id);
+
+-- User comments policies
+]:
+    """Extract relevant tags from post content"""
+    text = f"{title} {content}".lower()
+    tags = []
+    
+    # Common visa-related tags
+    tag_keywords = {

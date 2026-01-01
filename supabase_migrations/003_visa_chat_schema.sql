@@ -400,11 +400,266 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to auto-tag posts using LLM
 CREATE OR REPLACE FUNCTION auto_tag_post(post_uuid UUID)
-RETURNS void AS $$
+RETURNS void AS $
 DECLARE
     post_content TEXT;
+    post_title TEXT;
     matching_tags TEXT[];
+    tag_record RECORD;
 BEGIN
     -- Get post content
-    SELECT content INTO post_content 
-    FROM posts WHERE id = post_uuid
+    SELECT content, title INTO post_content, post_title
+    FROM posts WHERE id = post_uuid;
+    
+    IF post_content IS NULL THEN
+        RETURN;
+    END IF;
+    
+    -- Find matching tags using similarity search
+    SELECT array_agg(t.name) INTO matching_tags
+    FROM tags t
+    WHERE t.embedding IS NOT NULL
+    AND (
+        -- Text similarity in content
+        to_tsvector('english', t.name || ' ' || COALESCE(post_title, '')) @@ plainto_tsquery('english', post_content)
+        OR
+        -- Category-based matching (simplified)
+        (t.category = 'visa_type' AND post_content ILIKE '%h1b%' AND t.name ILIKE '%h1b%')
+        OR (t.category = 'visa_type' AND post_content ILIKE '%f1%' AND t.name ILIKE '%f1%')
+        OR (t.category = 'visa_type' AND post_content ILIKE '%b1%' AND t.name ILIKE '%b1%')
+        OR (t.category = 'interview' AND post_content ILIKE '%interview%')
+        OR (t.category = 'document' AND post_content ILIKE '%document%')
+    )
+    LIMIT 3;
+    
+    -- Insert matching tags
+    IF matching_tags IS NOT NULL THEN
+        FOR tag_record IN 
+            SELECT id FROM tags WHERE name = ANY(matching_tags)
+        LOOP
+            INSERT INTO post_tags (post_id, tag_id) 
+            VALUES (post_uuid, tag_record.id)
+            ON CONFLICT (post_id, tag_id) DO NOTHING;
+        END LOOP;
+    END IF;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get user statistics
+CREATE OR REPLACE FUNCTION get_user_stats(user_uuid UUID)
+RETURNS JSON AS $
+DECLARE
+    result JSON;
+BEGIN
+    SELECT json_build_object(
+        'total_posts', (
+            SELECT COUNT(*) FROM posts WHERE author_id = user_uuid
+        ),
+        'total_comments', (
+            SELECT COUNT(*) FROM comments WHERE author_id = user_uuid
+        ),
+        'total_upvotes_received', (
+            SELECT SUM(upvotes) FROM posts WHERE author_id = user_uuid
+        ),
+        'daily_posts_remaining', (
+            CASE 
+                WHEN (SELECT is_premium FROM profiles WHERE id = user_uuid) THEN -1
+                ELSE GREATEST(10 - (SELECT daily_posts FROM profiles WHERE id = user_uuid), 0)
+            END
+        ),
+        'is_premium', (
+            SELECT is_premium FROM profiles WHERE id = user_uuid
+        )
+    ) INTO result;
+    
+    RETURN result;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to increment user vote (with vote tracking)
+CREATE OR REPLACE FUNCTION increment_post_vote(
+    post_uuid UUID, 
+    vote_type_param VARCHAR(10),
+    user_uuid UUID DEFAULT auth.uid()
+)
+RETURNS void AS $
+DECLARE
+    current_vote VARCHAR(10);
+BEGIN
+    -- Check if user already voted
+    SELECT vote_type INTO current_vote 
+    FROM user_votes 
+    WHERE post_id = post_uuid AND user_id = user_uuid;
+    
+    IF current_vote IS NULL THEN
+        -- New vote
+        INSERT INTO user_votes (user_id, post_id, vote_type) 
+        VALUES (user_uuid, post_uuid, vote_type_param);
+        
+        -- Update post counts
+        IF vote_type_param = 'upvote' THEN
+            UPDATE posts SET upvotes = upvotes + 1 WHERE id = post_uuid;
+        ELSE
+            UPDATE posts SET downvotes = downvotes + 1 WHERE id = post_uuid;
+        END IF;
+    ELSIF current_vote != vote_type_param THEN
+        -- Changing vote type
+        UPDATE user_votes SET vote_type = vote_type_param WHERE post_id = post_uuid AND user_id = user_uuid;
+        
+        -- Update post counts
+        IF vote_type_param = 'upvote' THEN
+            UPDATE posts SET upvotes = upvotes + 1, downvotes = downvotes - 1 WHERE id = post_uuid;
+        ELSE
+            UPDATE posts SET upvotes = upvotes - 1, downvotes = downvotes + 1 WHERE id = post_uuid;
+        END IF;
+    END IF;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to decrement post count for user
+CREATE OR REPLACE FUNCTION decrement_user_daily_posts(user_uuid UUID)
+RETURNS void AS $
+BEGIN
+    UPDATE profiles 
+    SET daily_posts = daily_posts + 1, updated_at = NOW()
+    WHERE id = user_uuid AND is_premium = false;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =============================================
+-- TRIGGERS FOR AUTOMATION
+-- =============================================
+
+-- Trigger to auto-tag new posts
+CREATE OR REPLACE FUNCTION trigger_auto_tag_post()
+RETURNS TRIGGER AS $
+BEGIN
+    -- Note: This will be called asynchronously by Edge Function
+    -- The actual auto-tagging will be handled by Supabase Edge Function
+    -- This trigger just ensures the function exists
+    PERFORM auto_tag_post(NEW.id);
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to decrement daily posts
+CREATE OR REPLACE FUNCTION trigger_decrement_daily_posts()
+RETURNS TRIGGER AS $
+BEGIN
+    -- Only decrement for non-premium users
+    IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = NEW.author_id AND is_premium = true) THEN
+        UPDATE profiles 
+        SET daily_posts = daily_posts + 1, updated_at = NOW()
+        WHERE id = NEW.author_id;
+    END IF;
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create triggers
+CREATE TRIGGER trigger_auto_tag_new_post
+    AFTER INSERT ON posts
+    FOR EACH ROW EXECUTE FUNCTION trigger_auto_tag_post();
+
+CREATE TRIGGER trigger_decrement_daily_posts_on_post
+    AFTER INSERT ON posts
+    FOR EACH ROW EXECUTE FUNCTION trigger_decrement_daily_posts();
+
+-- =============================================
+-- VIEWS FOR COMMON QUERIES
+-- =============================================
+
+-- View for group statistics
+CREATE VIEW group_stats AS
+SELECT 
+    g.id,
+    g.name,
+    g.user_count,
+    g.active_count,
+    COUNT(DISTINCT p.id) as total_posts,
+    COUNT(DISTINCT c.id) as total_comments,
+    AVG(p.score) as avg_post_score,
+    MAX(p.created_at) as last_post_at
+FROM groups g
+LEFT JOIN posts p ON g.id = p.group_id
+LEFT JOIN comments c ON p.id = c.post_id
+GROUP BY g.id, g.name, g.user_count, g.active_count;
+
+-- View for popular posts
+CREATE VIEW popular_posts AS
+SELECT 
+    p.*,
+    pr.name as author_name,
+    pr.is_premium as author_is_premium,
+    array_agg(t.name) as tags
+FROM posts p
+JOIN profiles pr ON p.author_id = pr.id
+LEFT JOIN post_tags pt ON p.id = pt.post_id
+LEFT JOIN tags t ON pt.tag_id = t.id
+WHERE p.score > 0
+GROUP BY p.id, pr.name, pr.is_premium
+ORDER BY p.score DESC, p.created_at DESC;
+
+-- =============================================
+-- SAMPLE DATA (for development)
+-- =============================================
+
+-- Insert sample groups
+INSERT INTO groups (id, name) VALUES 
+    ('550e8400-e29b-41d4-a716-446655440001', 'H1B Visa Discussions'),
+    ('550e8400-e29b-41d4-a716-446655440002', 'F1 Student Visa'),
+    ('550e8400-e29b-41d4-a716-446655440003', 'Canada Immigration'),
+    ('550e8400-e29b-41d4-a716-446655440004', 'UK Visa Applications'),
+    ('550e8400-e29b-41d4-a716-446655440005', 'General Immigration');
+
+-- Insert sample tags
+INSERT INTO tags (name, category) VALUES 
+    ('H1B', 'visa_type'),
+    ('F1', 'visa_type'),
+    ('B1', 'visa_type'),
+    ('interview', 'interview'),
+    ('document', 'document'),
+    ('process', 'process'),
+    ('DS160', 'document'),
+    ('green card', 'process'),
+    ('opt', 'process'),
+    ('cpt', 'process');
+
+-- Add embeddings for tags (this would normally be done by Edge Function)
+-- UPDATE tags SET embedding = '[0.1, 0.2, ...]' WHERE name = 'H1B';
+
+-- =============================================
+-- COMMENTS
+-- =============================================
+
+/*
+This schema provides:
+
+1. Multi-tenant structure with groups and RLS policies
+2. StackOverflow-style posts with voting and comments
+3. Auto-tagging system with similarity search
+4. Premium subscription support with daily post limits
+5. Real-time presence tracking
+6. External content pipeline support
+7. Analytics events tracking
+8. Performance-optimized indexes including vector similarity
+9. Comprehensive security with RLS on all sensitive tables
+10. Automated triggers for business logic
+
+Key Features:
+- Premium users can search across all groups
+- Free users limited to 10 posts per day
+- Auto-tagging based on content similarity
+- Real-time active user counts
+- Hybrid search (vector + text)
+- Watermarking for anti-scraping
+- Comprehensive voting system
+
+Next Steps:
+1. Apply this migration to Supabase
+2. Create Edge Functions for auto-tagging
+3. Set up Redis integration
+4. Implement Groq LLM integration
+5. Build FastAPI backend
+6. Create Next.js frontend
+*/

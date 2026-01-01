@@ -1,0 +1,73 @@
+-- Migration: User-Centric Personal Spaces
+-- This migration creates a comprehensive user-centric data model with personal spaces
+-- for interview experiences, private messages, Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Upload a single post to Supabase with clustering support"""
+    try:
+        # Extract post and user interactions
+
+-- =============================================
+-- USER PERSONAL SPACES
+-- =============================================
+
+-- User personal spaces table (each user gets their own space)
+CREATE TABLE IF NOT EXISTS user_spaces (
+    information
+        author_name = post_data.get("Post Author", "Anonymous")
+        content = post_data.get("Post Content", "")
+        title = content[:100] + "..." if len(content) > 100 else content
+        
+        # Clean content
+        clean_content = clean_text(content)
+        clean_title = clean_text(title)
+        
+        # Generate embedding id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    display_name TEXT NOT NULL,
+    bio TEXT,
+   
+        embedding_text = f"{clean_title} {clean_content}"
+        embedding = generate_embedding(embedding_text)
+        
+        # Get IDs
+        author_id profile_image_url TEXT,
+    location TEXT,
+    website_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Analytics = get_or_create_author(author_name)
+        country_id = get_country_id(determine_country_from_content(content, title))
+        group_id = get_group_id()
+        
+        # Extract tags
+        counters
+    total_interviews INTEGER DEFAULT 0,
+    total_posts INTEGER DEFAULT 0,
+    total_messages_sent INTEGER DEFAULT 0,
+    total_messages_received INTEGER DEFAULT 0,
+    total_ tags = extract_tags_from_content(content, title)
+        
+        # Create post record
+        post_record = {
+            "id": str(uuid.uuid4()),
+            "group_id": group_id,
+            "country_id": country_id,
+            "author_id": author_id,
+            "title": clean_title,
+            "content": clean_content,
+            "embedding": embedding,
+            "upvotesanswers INTEGER DEFAULT 0,
+    total_comments INTEGER DEFAULT 0
+);
+
+-- User's interview experiences (personal space)
+CREATE TABLE IF NOT EXISTS interview_experiences (
+    id UUID DEFAULT gen_random": int(post_data.get("Number of Likes", 0)),
+            "downvotes": 0,
+            "view_count": int(post_data.get("Number of Views", 0)),
+            "_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    
+    -- Interview details
+    company_name TEXT NOT NULL,
+    position_title TEXT NOT NULL

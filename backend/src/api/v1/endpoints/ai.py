@@ -1,283 +1,256 @@
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
-from redis.asyncio import Redis
-from ..dependencies import get_db, get_current_user, get_redis
-from ...services.ai_service import AIService
-from ...services.embedding_service import EmbeddingService
-from ...models.user import User
-from ...core.config import settings
+from typing import Dict, Any, Optional, List
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from pydantic import BaseModel, Field
 import logging
-import json
+from redis.asyncio import Redis
+from ....services.optimized_ai_service import OptimizedAIService
+from ....services.embedding_service import EmbeddingService
+from ....services.supabase_auth_service import SupabaseAuthService, get_auth_service
+from ....core.redis import get_redis
+from ....core.config import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/ai", tags=["AI"])
 
-@router.post("/ai/answer")
+# Pydantic models for request validation
+class QuestionRequest(BaseModel):
+    question: str = Field(..., min_length=2, max_length=1000)
+    group_id: str
+    community_id: Optional[str] = None
+    use_cache: bool = True
+    context_type: str = "full"
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=1000)
+    group_id: str
+    community_id: Optional[str] = None
+    limit: int = Field(10, ge=1, le=50)
+    threshold: float = Field(0.7, ge=0.0, le=1.0)
+
+class Source(BaseModel):
+    type: str
+    id: str
+    content: str
+    created_at: Optional[str] = None
+    similarity: Optional[float] = None
+
+class Metrics(BaseModel):
+    latency: float
+    cache_hit: bool
+    model: Optional[str] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
+    error: Optional[str] = None
+
+class AnswerResponse(BaseModel):
+    answer: str
+    source: str
+    timestamp: Optional[str] = None
+    sources: List[Source] = []
+    metrics: Optional[Metrics] = None
+
+class SearchResponse(BaseModel):
+    results: List[Dict[str, Any]]
+    count: int
+    query: str
+    metrics: Optional[Dict[str, Any]] = None
+
+# Dependency to get AI service
+async def get_ai_service(
+    redis: Redis = Depends(get_redis),
+    embedding_service: EmbeddingService = Depends(lambda: EmbeddingService())
+) -> OptimizedAIService:
+    return OptimizedAIService(redis, embedding_service)
+
+@router.post("/answer", response_model=AnswerResponse)
 async def answer_question(
-    question: str = Query(..., min_length=2, max_length=500),
-    group_id: int = Query(..., description="Group ID for context"),
-    community_id: Optional[int] = Query(None, description="Community ID for broader context"),
-    use_cache: bool = Query(True, description="Whether to use cached answers"),
-    context_type: str = Query("full", regex="^(full|summary)$", description="Type of context to use"),
-    db: Session = Depends(get_db),
-    redis_client: Redis = Depends(get_redis),
-    current_user: User = Depends(get_current_user)
+    request_data: QuestionRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    ai_service: OptimizedAIService = Depends(get_ai_service),
+    auth_service: SupabaseAuthService = Depends(get_auth_service)
 ):
-    """Answer a question using RAG approach with semantic search"""
+    """
+    Answer a question using AI with RAG (Retrieval Augmented Generation)
+    """
     try:
-        # Initialize services
-        embedding_service = EmbeddingService(db)
-        ai_service = AIService(redis_client, embedding_service)
+        # Get user from request state
+        user = request.state.user
+        is_premium = request.state.is_premium
         
-        # Get answer from AI service
+        # Validate group access
+        if not await auth_service.verify_group_access(request_data.group_id, user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access to this group is not allowed"
+            )
+        
+        # Answer the question
         result = await ai_service.answer_question(
-            question=question,
-            group_id=group_id,
-            community_id=community_id,
-            use_cache=use_cache,
-            context_type=context_type
+            question=request_data.question,
+            group_id=request_data.group_id,
+            user_id=user.get("sub"),
+            is_premium=is_premium,
+            use_cache=request_data.use_cache,
+            context_type=request_data.context_type
         )
         
-        return {
-            "success": True,
-            "data": result,
-            "question": question,
-            "group_id": group_id
-        }
-        
-    except Exception as e:
-        logger.error(f"AI answer API error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate answer")
-
-@router.get("/ai/search")
-async def semantic_search(
-    query: str = Query(..., min_length=2, max_length=100),
-    group_id: int = Query(..., description="Group ID for context"),
-    community_id: Optional[int] = Query(None, description="Community ID for broader context"),
-    limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Semantic search across posts, comments, and messages"""
-    try:
-        embedding_service = EmbeddingService(db)
-        
-        # Perform hybrid search
-        results = await embedding_service.hybrid_search(
-            query=query,
-            community_id=community_id,
-            group_id=group_id,
-            limit=limit
+        # Log question for analytics in background
+        background_tasks.add_task(
+            log_question_analytics,
+            user.get("sub"),
+            request_data.question,
+            request_data.group_id,
+            result.get("source"),
+            result.get("metrics", {})
         )
         
-        return {
-            "success": True,
-            "data": {
-                "results": results,
-                "query": query,
-                "group_id": group_id,
-                "community_id": community_id,
-                "total": len(results)
-            }
-        }
-        
+        return result
     except Exception as e:
-        logger.error(f"Semantic search API error: {e}")
-        raise HTTPException(status_code=500, detail="Search failed")
+        logger.error(f"Error answering question: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to answer question: {str(e)}"
+        )
 
-@router.post("/ai/summarize")
-async def summarize_thread(
-    group_id: int = Query(..., description="Group ID"),
-    thread_content: List[Dict[str, Any]] = Query(..., description="Thread content to summarize"),
-    summary_type: str = Query("concise", regex="^(concise|detailed)$", description="Type of summary"),
-    db: Session = Depends(get_db),
-    redis_client: Redis = Depends(get_redis),
-    current_user: User = Depends(get_current_user)
+@router.post("/search", response_model=SearchResponse)
+async def search_content(
+    request_data: SearchRequest,
+    request: Request,
+    ai_service: OptimizedAIService = Depends(get_ai_service),
+    auth_service: SupabaseAuthService = Depends(get_auth_service)
 ):
-    """Summarize a thread of messages"""
+    """
+    Search for relevant content using semantic search
+    """
     try:
-        embedding_service = EmbeddingService(db)
-        ai_service = AIService(redis_client, embedding_service)
+        # Get user from request state
+        user = request.state.user
+        is_premium = request.state.is_premium
         
-        summary = await ai_service.summarize_thread(
-            group_id=group_id,
-            thread_content=thread_content,
-            summary_type=summary_type
+        # Validate group access
+        if not await auth_service.verify_group_access(request_data.group_id, user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access to this group is not allowed"
+            )
+        
+        # Search for content
+        start_time = __import__('time').time()
+        results = await ai_service.search_relevant_content(
+            question=request_data.query,
+            group_id=request_data.group_id,
+            community_id=request_data.community_id,
+            is_premium=is_premium,
+            top_k=request_data.limit
         )
         
-        if summary:
-            return {
-                "success": True,
-                "data": {
-                    "summary": summary,
-                    "group_id": group_id,
-                    "summary_type": summary_type
-                }
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Failed to generate summary")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Thread summarization API error: {e}")
-        raise HTTPException(status_code=500, detail="Summarization failed")
-
-@router.get("/ai/cost-estimate")
-async def get_cost_estimate(
-    prompt_tokens: int = Query(..., ge=1, description="Number of prompt tokens"),
-    response_tokens: int = Query(..., ge=1, description="Number of response tokens"),
-    current_user: User = Depends(get_current_user)
-):
-    """Estimate cost for AI model usage"""
-    try:
-        ai_service = AIService(None, None)  # Redis and embedding service not needed for cost estimation
-        
-        estimated_cost = await ai_service.get_cost_estimate(prompt_tokens, response_tokens)
-        
-        return {
-            "success": True,
-            "data": {
-                "estimated_cost": estimated_cost,
-                "prompt_tokens": prompt_tokens,
-                "response_tokens": response_tokens,
-                "provider": settings.AI_PROVIDER
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Cost estimation API error: {e}")
-        raise HTTPException(status_code=500, detail="Cost estimation failed")
-
-@router.get("/ai/cache-status")
-async def get_cache_status(
-    group_id: int = Query(..., description="Group ID"),
-    question: str = Query(..., min_length=2, max_length=500),
-    redis_client: Redis = Depends(get_redis),
-    current_user: User = Depends(get_current_user)
-):
-    """Check if a question-answer pair is cached"""
-    try:
-        ai_service = AIService(redis_client, None)
-        
-        cached_answer = await ai_service.get_cached_answer(group_id, question)
-        
-        return {
-            "success": True,
-            "data": {
-                "is_cached": cached_answer is not None,
-                "cached_answer": cached_answer,
-                "group_id": group_id,
-                "question": question
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Cache status API error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to check cache status")
-
-@router.delete("/ai/cache")
-async def clear_cache(
-    group_id: int = Query(..., description="Group ID"),
-    question: Optional[str] = Query(None, min_length=2, max_length=500),
-    redis_client: Redis = Depends(get_redis),
-    current_user: User = Depends(get_current_user)
-):
-    """Clear cached answers for a group or specific question"""
-    try:
-        ai_service = AIService(redis_client, None)
-        
-        # This would need to be implemented in the AI service
-        # For now, we'll return a success message
-        return {
-            "success": True,
-            "data": {
-                "message": "Cache cleared successfully",
-                "group_id": group_id,
-                "question": question
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Cache clearing API error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to clear cache")
-
-@router.get("/ai/providers")
-async def get_ai_providers(
-    current_user: User = Depends(get_current_user)
-):
-    """Get available AI providers"""
-    try:
-        providers = [
-            {
-                "name": "groq",
-                "description": "High-throughput, low-cost AI models",
-                "models": ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"]
-            },
-            {
-                "name": "openrouter",
-                "description": "Access to multiple AI models",
-                "models": ["anthropic/claude-3.5-sonnet", "google/gemini-pro", "openai/gpt-3.5-turbo"]
-            },
-            {
-                "name": "ollama",
-                "description": "Local AI models",
-                "models": ["llama2", "mistral", "codellama"]
-            }
+        # Filter results by threshold
+        filtered_results = [
+            result for result in results 
+            if result.get("similarity", 0.0) >= request_data.threshold
         ]
         
-        return {
-            "success": True,
-            "data": {
-                "providers": providers,
-                "current_provider": settings.AI_PROVIDER
+        # Prepare response
+        response = {
+            "results": filtered_results,
+            "count": len(filtered_results),
+            "query": request_data.query,
+            "metrics": {
+                "latency": __import__('time').time() - start_time,
+                "total_results": len(results),
+                "filtered_results": len(filtered_results)
             }
         }
         
+        return response
     except Exception as e:
-        logger.error(f"AI providers API error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get AI providers")
+        logger.error(f"Error searching content: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to search content: {str(e)}"
+        )
 
-@router.websocket("/ai/status")
-async def websocket_ai_status(
-    websocket: WebSocket,
-    db: Session = Depends(get_db),
-    redis_client: Redis = Depends(get_redis),
-    current_user: User = Depends(get_current_user)
+@router.get("/metrics", response_model=Dict[str, Any])
+async def get_ai_metrics(
+    request: Request,
+    ai_service: OptimizedAIService = Depends(get_ai_service)
 ):
-    """WebSocket endpoint for AI service status updates"""
+    """
+    Get AI service performance metrics
+    """
     try:
-        await websocket.accept()
+        # Only allow admin or service role
+        user = request.state.user
+        if user.get("role") not in ["admin", "service_role"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required"
+            )
         
-        # Send initial status
-        await websocket.send_json({
-            "type": "status",
-            "data": {
-                "service": "ai",
-                "status": "connected",
-                "user_id": current_user.id
-            }
-        })
-        
-        # Handle incoming messages
-        while True:
-            try:
-                data = await websocket.receive_json()
-                
-                if data.get("type") == "ping":
-                    await websocket.send_json({
-                        "type": "pong",
-                        "data": {"timestamp": "now"}
-                    })
-                    
-            except WebSocketDisconnect:
-                break
-            except Exception as e:
-                logger.error(f"WebSocket error: {e}")
-                break
-                
+        # Get metrics
+        metrics = await ai_service.get_performance_metrics()
+        return metrics
     except Exception as e:
-        logger.error(f"WebSocket connection error: {e}")
-        await websocket.close(code=1011, reason="Internal server error")
+        logger.error(f"Error getting AI metrics: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get AI metrics: {str(e)}"
+        )
+
+@router.post("/feedback", status_code=status.HTTP_204_NO_CONTENT)
+async def submit_answer_feedback(
+    feedback_data: Dict[str, Any],
+    request: Request,
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Submit feedback for an AI answer
+    """
+    try:
+        # Get user from request state
+        user = request.state.user
+        
+        # Prepare feedback data
+        feedback_record = {
+            "user_id": user.get("sub"),
+            "question": feedback_data.get("question"),
+            "answer": feedback_data.get("answer"),
+            "rating": feedback_data.get("rating"),
+            "feedback_text": feedback_data.get("feedback_text"),
+            "group_id": feedback_data.get("group_id"),
+            "created_at": __import__('datetime').datetime.now().isoformat()
+        }
+        
+        # Store feedback in Supabase
+        supabase.table("ai_feedback").insert(feedback_record).execute()
+        
+        return None
+    except Exception as e:
+        logger.error(f"Error submitting feedback: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to submit feedback: {str(e)}"
+        )
+
+# Background task for analytics
+async def log_question_analytics(
+    user_id: str,
+    question: str,
+    group_id: str,
+    source: str,
+    metrics: Dict[str, Any]
+):
+    """Log question analytics for monitoring"""
+    try:
+        # This would typically send data to analytics service
+        # For now, just log it
+        logger.info(
+            f"Question analytics: user={user_id}, group={group_id}, "
+            f"source={source}, latency={metrics.get('latency', 0):.2f}s, "
+            f"cache_hit={metrics.get('cache_hit', False)}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to log question analytics: {e}")
