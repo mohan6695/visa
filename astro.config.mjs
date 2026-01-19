@@ -26,6 +26,17 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ['@supabase/supabase-js'],
     },
+    ssr: {
+      external: ['sharp', 'detect-libc', 'child_process', 'fs'],
+    },
+    resolve: {
+      alias: {
+        '@': '/src',
+        // Mock incompatible modules for browser/worker environment
+        'child_process': 'node:child_process',
+        'fs': 'node:fs',
+      },
+    },
   },
 
   // Image optimization
