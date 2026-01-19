@@ -7,27 +7,86 @@ from ..models.group_message import GroupMessage
 from ..core.config import settings
 import logging
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import requests
+import json
 
 logger = logging.getLogger(__name__)
 
 class EmbeddingService:
-    """Service for managing pgvector embeddings and semantic search"""
+    """Service for managing pgvector embeddings and semantic search using Ollama"""
     
     def __init__(self, db: Session):
         self.db = db
-        # Initialize embedding model (can be swapped for different models)
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Ollama settings - use local Ollama with nomic-embed-text
+        self.ollama_base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
+        self.embedding_model = getattr(settings, 'OLLAMA_EMBEDDING_MODEL', 'nomic-embed-text')
+        self._test_ollama_connection()
+    
+    def _test_ollama_connection(self):
+        """Test if Ollama is available"""
+        try:
+            response = requests.get(f"{self.ollama_base_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                logger.info(f"Ollama connected successfully. Available models: {response.json().get('models', [])}")
+            else:
+                logger.warning(f"Ollama returned status {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Ollama not available: {e}. Will retry on first embedding request.")
     
     def generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for text content"""
+        """Generate embedding for text content using Ollama"""
         try:
             # Clean and preprocess text
             cleaned_text = self._clean_text(text)
-            embedding = self.model.encode(cleaned_text)
-            return embedding.tolist()
+            
+            # Call Ollama embeddings API (correct endpoint: /api/embeddings)
+            response = requests.post(
+                f"{self.ollama_base_url}/api/embeddings",
+                json={
+                    "model": self.embedding_model,
+                    "prompt": cleaned_text
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                # Ollama /api/embeddings returns 'embedding' field for single text
+                embedding = result.get('embedding')
+                if embedding:
+                    return embedding
+                else:
+                    logger.error(f"Unexpected Ollama response structure: {result}")
+                    return []
+            else:
+                logger.error(f"Ollama embedding request failed: {response.status_code} - {response.text}")
+                return []
+                
         except Exception as e:
             logger.error(f"Failed to generate embedding: {e}")
+            return []
+    
+    def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+        """Generate embeddings for multiple texts using Ollama batch API"""
+        try:
+            # Clean and preprocess texts
+            cleaned_texts = [self._clean_text(text) for text in texts]
+            
+            # Call Ollama embeddings API with each text (Ollama doesn't have native batch)
+            # Process sequentially for now, can be parallelized
+            embeddings = []
+            for text in cleaned_texts:
+                embedding = self.generate_embedding(text)
+                if embedding:
+                    embeddings.append(embedding)
+                else:
+                    logger.error(f"Failed to generate embedding for text: {text[:50]}...")
+                    embeddings.append([])
+            
+            return embeddings
+            
+        except Exception as e:
+            logger.error(f"Failed to generate batch embeddings: {e}")
             return []
     
     def _clean_text(self, text: str) -> str:

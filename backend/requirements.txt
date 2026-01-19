@@ -43,3 +43,6 @@ sentence-transformers==2.2.2
 
 # Async Redis
 aioredis==2.0.1
+
+# FlashRank for ultra-fast reranking
+flashrank==0.2.0

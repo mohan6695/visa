@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Visa Posts - Visa Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .post-container {
+            transition: all 0.3s ease;
+        }
+        .post-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .vote-controls {
+            border-right: 1px solid #e1e4e8;
+        }
+        .post-content {
+            border-left: 1px solid #e1e4e8;
+        }
+        .similar-post {
+            transition: all 0.3s ease;
+        }
+        .similar-post:hover {
+            transform: translateX(4px);
+            background-color: #f8f9fa;
+        }
+        .tag-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="bg-gradient-to-r from-orange-500 to-green-500 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-orange-600 font-bold text-lg">V</span>
+                    </div>
+                    <span class="text-xl font-bold">Visa Platform</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="hover:text-orange-200 transition-colors">Home</a>
+                    <a href="countries.html" class="hover:text-orange-200 transition-colors">Countries</a>
+                    <a href="communities.html" class="hover:text-orange-200 transition-colors">Communities</a>
+                    <a href="interview-experience.html" class="hover:text-orange-200 transition-colors">Interview Experience</a>
+                    <a href="country-india-posts.html" class="text-orange-200 font-semibold border-b-2 border-orange-200">India Posts</a>
+                    <button class="bg-white text-orange-600 px-4 py-2 rounded-lg font-medium hover:bg-orange-50 transition-colors">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Search and Filter Section -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                <div class="flex-1 max-w-lg">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search India visa posts..." 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="searchPosts()" 
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition-colors">
+                            Search
+                        </button>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <select id="category-filter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                        <option value="employment">Employment</option>
+                        <option value="student">Student</option>
+                        <option value="tourist">Tourist</option>
+                        <option value="business">Business</option>
+                        <option value="family">Family</option>
+                        <option value="immigration">Immigration</option>
+                        <option value="documentation">Documentation</option>
+                    </select>
+                    <select id="sort-filter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="newest">Newest</option>
+                        <option value="most-votes">Most Votes</option>
+                        <option value="most-answers">Most Answers</option>
+                        <option value="most-views">Most Views</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Main Posts Area -->
+            <div class="lg:col-span-3">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">India Visa Posts</h2>
+                    <div class="text-sm text-gray-600">
+                        <span id="posts-count">4</span> posts found
+                    </div>
+                </div>
+                
+                <div id="posts-container" class="space-y-6">
+                    <!-- Post 1 -->
+                    <div class="post-container bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                        <div class="flex">
+                            <!-- Vote Controls -->
+                            <div class="vote-controls flex flex-col items-center px-4 py-6 space-y-2">
+                                <button onclick="votePost(1, 1)" class="text-gray-500 hover:text-green-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                    </svg>
+                                </button>
+                                <span class="text-lg font-semibold text-gray-700">5</span>
+                                <button onclick="votePost(1, -1)" class="text-gray-500 hover:text-red-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Post Content -->
+                            <div class="post-content flex-1 p-6">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="user-avatar bg-gray-200 text-gray-700">
+                                            RS
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                                                How to get Indian work visa for IT professionals?
+                                            </h3>
+                                            <div class="text-sm text-gray-600">
+                                                <span>by Rajesh Sharma</span>
+                                                <span class="mx-2">•</span>
+                                                <span>3d ago</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-500">12 answers</span>
+                                        <span class="text-sm text-gray-500">156 views</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-gray-700 mb-4 line-clamp-3">
+                                    I'm a software engineer from Bangladesh looking to work in India. What are the requirements and process for getting an Indian work visa for IT professionals? How long does it take and what documents are needed?
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="tag-pill">Work Visa</span>
+                                        <span class="tag-pill">IT Professional</span>
+                                        <span class="tag-pill">Employment</span>
+                                        <span class="tag-pill">Documentation</span>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewPost(1)" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                            View Full Post
+                                        </button>
+                                        <button onclick="sharePost(1)" class="text-gray-500 hover:text-gray-700 text-sm">
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post 2 -->
+                    <div class="post-container bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                        <div class="flex">
+                            <div class="vote-controls flex flex-col items-center px-4 py-6 space-y-2">
+                                <button onclick="votePost(2, 1)" class="text-gray-500 hover:text-green-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                    </svg>
+                                </button>
+                                <span class="text-lg font-semibold text-gray-700">8</span>
+                                <button onclick="votePost(2, -1)" class="text-gray-500 hover:text-red-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="post-content flex-1 p-6">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="user-avatar bg-gray-200 text-gray-700">
+                                            PM
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                                                Student visa requirements for Indian universities
+                                            </h3>
+                                            <div class="text-sm text-gray-600">
+                                                <span>by Priya Mehta</span>
+                                                <span class="mx-2">•</span>
+                                                <span>1d ago</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-500">15 answers</span>
+                                        <span class="text-sm text-gray-500">203 views</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-gray-700 mb-4 line-clamp-3">
+                                    I want to pursue my Masters in Computer Science from an Indian university. What are the specific visa requirements for international students? Do I need to show financial proof and what about the admission process?
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="tag-pill">Student Visa</span>
+                                        <span class="tag-pill">University Admission</span>
+                                        <span class="tag-pill">Financial Proof</span>
+                                        <span class="tag-pill">Documentation</span>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewPost(2)" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                            View Full Post
+                                        </button>
+                                        <button onclick="sharePost(2)" class="text-gray-500 hover:text-gray-700 text-sm">
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post 3 -->
+                    <div class="post-container bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                        <div class="flex">
+                            <div class="vote-controls flex flex-col items-center px-4 py-6 space-y-2">
+                                <button onclick="votePost(3, 1)" class="text-gray-500 hover:text-green-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                    </svg>
+                                </button>
+                                <span class="text-lg font-semibold text-gray-700">3</span>
+                                <button onclick="votePost(3, -1)" class="text-gray-500 hover:text-red-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="post-content flex-1 p-6">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="user-avatar bg-gray-200 text-gray-700">
+                                            AK
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                                                Tourist visa application process and timeline
+                                            </h3>
+                                            <div class="text-sm text-gray-600">
+                                                <span>by Anil Kumar</span>
+                                                <span class="mx-2">•</span>
+                                                <span>5h ago</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-500">7 answers</span>
+                                        <span class="text-sm text-gray-500">89 views</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-gray-700 mb-4 line-clamp-3">
+                                    Planning a 2-week vacation to India from Pakistan. What's the current tourist visa application process? How long does it take to get approved and are there any expedited options available?
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="tag-pill">Tourist Visa</span>
+                                        <span class="tag-pill">Application Process</span>
+                                        <span class="tag-pill">Timeline</span>
+                                        <span class="tag-pill">Expedited</span>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewPost(3)" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                            View Full Post
+                                        </button>
+                                        <button onclick="sharePost(3)" class="text-gray-500 hover:text-gray-700 text-sm">
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post 4 -->
+                    <div class="post-container bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                        <div class="flex">
+                            <div class="vote-controls flex flex-col items-center px-4 py-6 space-y-2">
+                                <button onclick="votePost(4, 1)" class="text-gray-500 hover:text-green-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                    </svg>
+                                </button>
+                                <span class="text-lg font-semibold text-gray-700">12</span>
+                                <button onclick="votePost(4, -1)" class="text-gray-500 hover:text-red-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="post-content flex-1 p-6">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="user-avatar bg-gray-200 text-gray-700">
+                                            SS
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                                                Business visa requirements for Indian companies
+                                            </h3>
+                                            <div class="text-sm text-gray-600">
+                                                <span>by Suresh Singh</span>
+                                                <span class="mx-2">•</span>
+                                                <span>8h ago</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-500">18 answers</span>
+                                        <span class="text-sm text-gray-500">245 views</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-gray-700 mb-4 line-clamp-3">
+                                    I need to establish a business partnership with an Indian company. What are the requirements for getting a business visa? Do I need invitation letters and what are the financial requirements?
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="tag-pill">Business Visa</span>
+                                        <span class="tag-pill">Partnership</span>
+                                        <span class="tag-pill">Invitation Letter</span>
+                                        <span class="tag-pill">Financial Requirements</span>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewPost(4)" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                            View Full Post
+                                        </button>
+                                        <button onclick="sharePost(4)" class="text-gray-500 hover:text-gray-700 text-sm">
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar with Similar Posts -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-4">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Similar Posts</h3>
+                    <div id="similar-posts" class="space-y-4">
+                        <div class="similar-post p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <h4 class="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                                Student visa requirements for Indian universities
+                            </h4>
+                            <div class="text-xs text-gray-600">
+                                <span>15 answers</span>
+                                <span class="mx-2">•</span>
+                                <span>1d ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="similar-post p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <h4 class="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                                Business visa requirements for Indian companies
+                            </h4>
+                            <div class="text-xs text-gray-600">
+                                <span>18 answers</span>
+                                <span class="mx-2">•</span>
+                                <span>8h ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="similar-post p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <h4 class="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                                How to get Indian work visa for IT professionals?
+                            </h4>
+                            <div class="text-xs text-gray-600">
+                                <span>12 answers</span>
+                                <span class="mx-2">•</span>
+                                <span>3d ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Popular Tags</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="tag-pill">Work Visa</span>
+                            <span class="tag-pill">Student Visa</span>
+                            <span class="tag-pill">Tourist Visa</span>
+                            <span class="tag-pill">Business Visa</span>
+                            <span class="tag-pill">Employment</span>
+                            <span class="tag-pill">Documentation</span>
+                            <span class="tag-pill">Application Process</span>
+                            <span class="tag-pill">Financial Proof</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">About India Visa Posts</h4>
+                        <p class="text-sm text-gray-600">
+                            This section contains Stack Overflow-style posts about India visa issues, including work, student, tourist, and business visas. Posts are clustered using pgvector for similar content discovery.
+                        </p>
+                        <p class="text-sm text-gray-600 mt-2">
+                            <strong>Clustering Technology:</strong> Posts are automatically clustered using pgvector embeddings to find similar content and help users discover related discussions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">V</span>
+                        </div>
+                        <span class="text-xl font-bold">Visa Platform</span>
+                    </div>
+                    <p class="text-gray-400">
+                        Your trusted partner for global visa information and immigration guidance.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="countries.html" class="hover:text-white transition-colors">All Countries</a></li>
+                        <li><a href="communities.html" class="hover:text-white transition-colors">Communities</a></li>
+                        <li><a href="interview-experience.html" class="hover:text-white transition-colors">Interview Experience</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Popular Countries</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="country-india.html" class="hover:text-white transition-colors">India</a></li>
+                        <li><a href="country-usa.html" class="hover:text-white transition-colors">United States</a></li>
+                        <li><a href="country-canada.html" class="hover:text-white transition-colors">Canada</a></li>
+                        <li><a href="country-uk.html" class="hover:text-white transition-colors">United Kingdom</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="help.html" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="privacy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>© 2026 Visa Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple JavaScript functions for demonstration
+        function searchPosts() {
+            const query = document.getElementById('search-input').value.toLowerCase()
+            const category = document.getElementById('category-filter').value
+            
+            // In a real implementation, this would call the Supabase API
+            console.log('Searching posts:', query, category)
+            alert('Search functionality would filter posts based on: ' + query + (category ? ' in ' + category : ''))
+        }
+        
+        function votePost(postId, direction) {
+            console.log('Voting on post', postId, direction > 0 ? 'up' : 'down')
+            alert('Vote recorded! In real implementation, this would update the post votes in Supabase.')
+        }
+        
+        function viewPost(postId) {
+            console.log('Viewing post', postId)
+            alert('In real implementation, this would open the full post detail page.')
+        }
+        
+        function sharePost(postId) {
+            console.log('Sharing post', postId)
+            alert('Share functionality would copy the post link to clipboard.')
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update posts count
+            const postCount = document.querySelectorAll('.post-container').length
+            document.getElementById('posts-count').textContent = postCount
+            
+            // Add event listeners
+            document.getElementById('search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchPosts()
+                }
+            })
+        })
+    </script>
+</body>
+</html>

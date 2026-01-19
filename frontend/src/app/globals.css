@@ -141,6 +141,51 @@ html {
   }
 }
 
+/* Ad Space Styles - >50% ad space for monetization */
+.ad-banner,
+.ad-sidebar,
+.ad-in-feed {
+  @apply bg-gray-50 border border-gray-200 rounded-lg;
+}
+
+.ad-banner.horizontal {
+  @apply w-full h-[90px] my-4;
+}
+
+.ad-banner.vertical {
+  @apply w-[160px] h-[600px] mx-auto;
+}
+
+.ad-banner.rectangle {
+  @apply w-[300px] h-[250px] mx-auto;
+}
+
+.ad-sidebar {
+  @apply fixed top-20 z-40 hidden lg:block;
+}
+
+.ad-sidebar-left {
+  @apply left-4;
+}
+
+.ad-sidebar-right {
+  @apply right-4;
+}
+
+.ad-in-feed {
+  @apply w-full h-[250px] my-8;
+}
+
+/* Ad placeholder for development */
+.ad-placeholder {
+  @apply bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-lg flex items-center justify-center text-blue-500 font-medium;
+}
+
+/* Main content area with ad space */
+.main-with-ads {
+  @apply min-h-screen;
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .border {
@@ -216,4 +261,5 @@ html {
   transform: translateX(100%);
   opacity: 0;
   transition: transform 300ms, opacity 300ms;
+}
 }

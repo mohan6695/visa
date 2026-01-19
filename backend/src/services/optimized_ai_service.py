@@ -370,6 +370,95 @@ class OptimizedAIService:
             logger.error(f"Failed to generate context: {e}")
             return f"Question: {question}\n\nError generating context."
     
+    async def call_ollama_api(
+        self,
+        prompt: str,
+        model: str = "qwen2.5:3b",
+        max_tokens: int = 1000,
+        temperature: float = 0.7,
+        stream: bool = False
+    ) -> Tuple[Optional[str], Dict[str, Any]]:
+        """
+        Call Ollama API with optimized settings and metrics tracking
+        
+        Args:
+            prompt: The prompt to send to the model
+            model: Model to use (default: qwen2.5:3b)
+            max_tokens: Maximum tokens to generate
+            temperature: Temperature for generation
+            stream: Whether to stream the response
+            
+        Returns:
+            Tuple[Optional[str], Dict[str, Any]]: (Response text, Metrics)
+        """
+        try:
+            import httpx
+            
+            start_time = time.time()
+            self.llm_calls += 1
+            
+            ollama_url = settings.ollama_url
+            
+            # Prepare the request for Ollama
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "stream": stream,
+                "options": {
+                    "num_predict": max_tokens,
+                    "temperature": temperature
+                }
+            }
+            
+            # Make the API call with timeout
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{ollama_url}/api/generate",
+                    json=payload
+                )
+                
+                end_time = time.time()
+                latency = end_time - start_time
+                
+                # Update average response time
+                self.avg_response_time = (
+                    (self.avg_response_time * (self.llm_calls - 1) + latency) / self.llm_calls
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Extract metrics
+                    metrics = {
+                        "latency": latency,
+                        "model": model,
+                        "prompt_eval_count": data.get("prompt_eval_count", 0),
+                        "eval_count": data.get("eval_count", 0)
+                    }
+                    
+                    # Log performance metrics
+                    logger.info(
+                        f"Ollama API call: latency={latency:.2f}s, "
+                        f"model={model}"
+                    )
+                    
+                    return data.get("response", "").strip(), metrics
+                else:
+                    logger.error(f"Ollama API error: {response.status_code} - {response.text}")
+                    return None, {
+                        "error": f"API error: {response.status_code}",
+                        "latency": latency
+                    }
+                    
+        except httpx.TimeoutException:
+            end_time = time.time()
+            logger.error("Ollama API timeout")
+            return None, {"error": "API timeout", "latency": end_time - start_time}
+        except Exception as e:
+            end_time = time.time()
+            logger.error(f"Ollama API error: {e}")
+            return None, {"error": str(e), "latency": end_time - start_time}
+    
     async def call_groq_api(
         self, 
         prompt: str,
@@ -541,13 +630,26 @@ class OptimizedAIService:
 
             Answer:"""
             
-            # Call AI model
-            answer_text, metrics = await self.call_groq_api(
-                prompt, 
-                model="llama-3.1-70b-versatile",  # Using Llama 3.1 70B for best quality
-                max_tokens=1000, 
-                temperature=0.7
-            )
+            # Call AI model based on configured provider
+            if settings.ai_provider == "ollama":
+                ollama_model = settings.ollama_model or "qwen2.5:3b"
+                answer_text, metrics = await self.call_ollama_api(
+                    prompt,
+                    model=ollama_model,
+                    max_tokens=1000,
+                    temperature=0.7
+                )
+                model_used = ollama_model
+            else:
+                # Default to Groq
+                groq_model = settings.groq_model or "llama-3.1-70b-versatile"
+                answer_text, metrics = await self.call_groq_api(
+                    prompt,
+                    model=groq_model,
+                    max_tokens=1000,
+                    temperature=0.7
+                )
+                model_used = groq_model
             
             if not answer_text:
                 error_response = {
@@ -579,10 +681,10 @@ class OptimizedAIService:
                 ],
                 "metrics": {
                     "latency": time.time() - start_time,
-                    "model": "llama-3.1-70b-versatile",
-                    "prompt_tokens": metrics.get("prompt_tokens", 0),
-                    "completion_tokens": metrics.get("completion_tokens", 0),
-                    "total_tokens": metrics.get("total_tokens", 0),
+                    "model": model_used,
+                    "prompt_tokens": metrics.get("prompt_tokens", metrics.get("prompt_eval_count", 0)),
+                    "completion_tokens": metrics.get("completion_tokens", metrics.get("eval_count", 0)),
+                    "total_tokens": metrics.get("total_tokens", metrics.get("prompt_eval_count", 0) + metrics.get("eval_count", 0)),
                     "cache_hit": False
                 }
             }

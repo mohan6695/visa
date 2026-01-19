@@ -1,0 +1,597 @@
+Below is a **single file** you can paste into Cursor and then split into individual Edge Functions + SQL as needed. It includes:
+
+- All 5 Edge Functions (Apify scrape, parse storage, generate embeddings, cluster posts, summarize clusters)
+- SQL for tables, extensions, RLS, RPCs, cron jobs
+- Security/auth patterns
+
+You can keep this as `supabase_pipeline_spec.ts` (or `.md`) and progressively extract into actual `supabase/functions/*` and SQL migrations.
+
+***
+
+```ts
+/**
+ * SUPABASE PIPELINE SPEC – COPY INTO CURSOR
+ *
+ * Contains:
+ * 1) SQL: schema, extensions, RLS, RPCs, cron
+ * 2) Edge Functions: 
+ *    - apify-scrape
+ *    - parse-storage
+ *    - generate-embeddings
+ *    - cluster-posts
+ *    - summarize-clusters
+ *
+ * Instructions are in comments. Search for "=== STEP" markers.
+ */
+
+/* ============================================================================
+ * === STEP 1: SQL – RUN IN SUPABASE SQL EDITOR OR MIGRATIONS =================
+ * ==========================================================================*/
+
+/**
+ * Copy everything inside this template literal into a SQL migration file
+ * or directly into Supabase SQL Editor.
+ */
+
+const SQL_SETUP = String.raw`-- 1. Extensions
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+CREATE EXTENSION IF NOT EXISTS pgmq;
+
+-- 2. Tables
+
+-- Posts table with pgvector
+CREATE TABLE IF NOT EXISTS posts (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  scraped_url text UNIQUE,
+  title text,
+  content text,
+  embedding vector(384),
+  embedding_status text DEFAULT 'pending',
+  cluster_id integer,
+  created_at timestamptz DEFAULT now(),
+  processed_at timestamptz
+);
+
+-- Clusters table
+CREATE TABLE IF NOT EXISTS clusters (
+  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  centroid vector(384),
+  summary text,
+  label text,
+  post_count integer DEFAULT 0,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 3. Indexes for pgvector
+CREATE INDEX IF NOT EXISTS posts_embedding_idx
+  ON posts USING hnsw (embedding vector_cosine_ops);
+
+CREATE INDEX IF NOT EXISTS clusters_centroid_idx
+  ON clusters USING hnsw (centroid vector_cosine_ops);
+
+-- 4. PGMQ queue for raw posts from Apify (before embeddings)
+SELECT pgmq.create('post_queue') WHERE NOT EXISTS (
+  SELECT 1 FROM pgmq.queues WHERE name = 'post_queue'
+);
+
+-- 5. RLS: restrict direct access; only Edge Functions (service_role) should touch
+
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clusters ENABLE ROW LEVEL SECURITY;
+
+-- Optional: allow nothing by default
+DROP POLICY IF EXISTS "Allow all posts" ON posts;
+DROP POLICY IF EXISTS "Allow all clusters" ON clusters;
+
+CREATE POLICY "Service role only posts"
+  ON posts
+  FOR ALL
+  USING (false);
+
+CREATE POLICY "Service role only clusters"
+  ON clusters
+  FOR ALL
+  USING (false);
+
+-- 6. RPC: find nearest centroid
+CREATE OR REPLACE FUNCTION assign_nearest_centroid(query_emb vector)
+RETURNS TABLE (id integer, distance float) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    c.id,
+    c.centroid <=> query_emb AS distance
+  FROM clusters c
+  ORDER BY c.centroid <=> query_emb
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 7. RPC: update cluster count (increment post_count)
+CREATE OR REPLACE FUNCTION update_cluster_count(cluster_id integer)
+RETURNS void AS $$
+BEGIN
+  UPDATE clusters
+  SET post_count = post_count + 1,
+      updated_at = now()
+  WHERE id = cluster_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 8. Cron jobs to call Edge Functions (you will set actual project URL)
+
+-- Replace YOUR_PROJECT_ID with your project ref.
+-- Also ensure app.settings.service_role_key is set (Supabase config).
+
+-- CRON1: Apify scrape hourly
+SELECT cron.schedule(
+  'apify-scrape',
+  '0 * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR_PROJECT_ID.functions.supabase.co/apify-scrape',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    )
+  );
+  $$
+);
+
+-- CRON2: generate embeddings every 1 min
+SELECT cron.schedule(
+  'generate-embeddings',
+  '*/1 * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR_PROJECT_ID.functions.supabase.co/generate-embeddings',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    )
+  );
+  $$
+);
+
+-- CRON3: cluster posts every 5 min
+SELECT cron.schedule(
+  'cluster-posts',
+  '*/5 * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR_PROJECT_ID.functions.supabase.co/cluster-posts',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    )
+  );
+  $$
+);
+
+-- CRON4: summarize clusters every 15 min
+SELECT cron.schedule(
+  'summarize-clusters',
+  '*/15 * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR_PROJECT_ID.functions.supabase.co/summarize-clusters',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    )
+  );
+  $$
+);`;
+
+
+/* ============================================================================
+ * === STEP 2: EDGE FUNCTIONS – COPY INTO supabase/functions/* ===============
+ * ==========================================================================*/
+
+/**
+ * All functions use the same auth pattern:
+ *
+ *   const auth = req.headers.get('Authorization');
+ *   if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) { ... }
+ *
+ * Add env vars in Supabase:
+ *   SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY
+ *   APIFY_TOKEN
+ */
+
+
+/* === Edge Function 1: apify-scrape =========================================
+ * Path: supabase/functions/apify-scrape/index.ts
+ */
+
+const EDGE_APIFY_SCRAPE = String.raw`import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  const auth = req.headers.get('Authorization');
+  if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const apifyToken = Deno.env.get('APIFY_TOKEN');
+  if (!apifyToken) return new Response('Missing APIFY_TOKEN', { status: 500 });
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // TODO: Move targetUrls to a config table if needed
+  const targetUrls = ['https://example.com/posts'];
+
+  for (const url of targetUrls) {
+    // Start Apify actor run (simplified; adjust for your actor)
+    const runRes = await fetch(\`https://api.apify.com/v2/acts/apify~web-scraper/runs?token=\${apifyToken}\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startUrls: [{ url }],
+        maxPagesPerCrawl: 20
+      })
+    });
+
+    if (!runRes.ok) {
+      console.error('Apify run failed', await runRes.text());
+      continue;
+    }
+
+    const run = await runRes.json();
+    const datasetId = run.data?.defaultDatasetId;
+    if (!datasetId) continue;
+
+    // Fetch results as JSONL
+    const dataRes = await fetch(
+      \`https://api.apify.com/v2/datasets/\${datasetId}/items?format=jsonl&token=\${apifyToken}\`
+    );
+    if (!dataRes.ok) {
+      console.error('Apify dataset fetch failed', await dataRes.text());
+      continue;
+    }
+
+    const filename = \`posts-\${Date.now()}.jsonl\`;
+    const buffer = await dataRes.arrayBuffer();
+
+    // Upload to Storage bucket: scraped-data
+    const { error } = await supabase.storage
+      .from('scraped-data')
+      .upload(filename, new Blob([buffer]), {
+        contentType: 'application/x-ndjson',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Storage upload error', error);
+    }
+  }
+
+  return new Response('Apify scrape done');
+});`;
+
+
+/* === Edge Function 2: parse-storage ========================================
+ * Path: supabase/functions/parse-storage/index.ts
+ * Trigger: Storage webhook on INSERT to bucket "scraped-data"
+ */
+
+const EDGE_PARSE_STORAGE = String.raw`import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  const auth = req.headers.get('Authorization');
+  if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const body = await req.json();
+  const { name, bucket } = body.record ?? body;
+
+  if (bucket !== 'scraped-data' || !name) {
+    return new Response('Ignored', { status: 200 });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const { data: file, error } = await supabase.storage
+    .from('scraped-data')
+    .download(name);
+
+  if (error || !file) {
+    console.error('Download error', error);
+    return new Response('Error', { status: 500 });
+  }
+
+  const text = await file.text();
+  const lines = text.split('\n').filter(Boolean);
+
+  // Minimal JSONL parsing; adjust keys as per Apify result shape
+  const batch: { scraped_url: string; title: string; content: string }[] = [];
+
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      const url = obj.url || obj.pageUrl;
+      const title = obj.title || obj.pageTitle;
+      const content = obj.text || obj.content;
+
+      if (!url || !title || !content) continue;
+
+      batch.push({ scraped_url: url, title, content });
+    } catch (e) {
+      console.error('JSON parse error', e);
+      continue;
+    }
+  }
+
+  // Queue posts into pgmq "post_queue" as raw JSON
+  // (embedding + insert happens in generate-embeddings function)
+  for (const post of batch) {
+    const { error: qErr } = await supabase
+      .rpc('pgmq_send_wrapper', { queue_name: 'post_queue', message: post });
+
+    if (qErr) console.error('Queue error', qErr);
+  }
+
+  return new Response('Queued posts');
+});`;
+
+
+/**
+ * Helper RPC for pgmq send (add to SQL if you want clean rpc):
+ *
+ * CREATE OR REPLACE FUNCTION pgmq_send_wrapper(queue_name text, message jsonb)
+ * RETURNS void AS $$
+ * BEGIN
+ *   PERFORM pgmq.send(queue_name, message);
+ * END;
+ * $$ LANGUAGE plpgsql;
+ */
+
+
+/* === Edge Function 3: generate-embeddings ==================================
+ * Path: supabase/functions/generate-embeddings/index.ts
+ * Trigger: Cron (every 1 min) via pg_cron + pg_net
+ */
+
+const EDGE_GENERATE_EMBEDDINGS = String.raw`import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ai } from 'https://esm.sh/@supabase/supabase-js@2/ai';
+
+Deno.serve(async (req) => {
+  const auth = req.headers.get('Authorization');
+  if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Read up to 50 jobs from post_queue (raw scraped posts)
+  const { data: jobs, error } = await supabase
+    .rpc('pgmq_read_wrapper', { queue_name: 'post_queue', batch_size: 50 });
+
+  if (error || !jobs || jobs.length === 0) {
+    return new Response('No jobs', { status: 200 });
+  }
+
+  const texts: string[] = [];
+  const toInsert: any[] = [];
+
+  for (const job of jobs) {
+    const payload = job.message; // jsonb
+    texts.push(payload.content);
+    toInsert.push({
+      scraped_url: payload.scraped_url,
+      title: payload.title,
+      content: payload.content,
+      embedding_status: 'pending'
+    });
+  }
+
+  const embedder = ai.createEmbeddings('gte-small');
+  const vectors = await embedder.embed(texts);
+
+  const rows = toInsert.map((p, i) => ({
+    ...p,
+    embedding: vectors[i],
+    embedding_status: 'ready',
+    processed_at: new Date().toISOString()
+  }));
+
+  const { error: insErr } = await supabase.from('posts').insert(rows);
+  if (insErr) {
+    console.error('Insert posts error', insErr);
+  }
+
+  // Delete processed jobs from queue
+  const msgIds = jobs.map((j: any) => j.msg_id);
+  const { error: delErr } = await supabase
+    .rpc('pgmq_delete_wrapper', { queue_name: 'post_queue', msg_ids: msgIds });
+
+  if (delErr) console.error('Queue delete error', delErr);
+
+  return new Response(JSON.stringify({ embedded: rows.length }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+});`;
+
+/**
+ * RPC helpers for pgmq (add to SQL if using wrappers):
+ *
+ * CREATE OR REPLACE FUNCTION pgmq_read_wrapper(queue_name text, batch_size int)
+ * RETURNS TABLE (msg_id bigint, message jsonb) AS $$
+ * BEGIN
+ *   RETURN QUERY
+ *   SELECT msg_id, message FROM pgmq.read(queue_name, 0, batch_size);
+ * END;
+ * $$ LANGUAGE plpgsql;
+ *
+ * CREATE OR REPLACE FUNCTION pgmq_delete_wrapper(queue_name text, msg_ids bigint[])
+ * RETURNS void AS $$
+ * BEGIN
+ *   PERFORM pgmq.delete(queue_name, msg_ids);
+ * END;
+ * $$ LANGUAGE plpgsql;
+ */
+
+
+/* === Edge Function 4: cluster-posts ========================================
+ * Path: supabase/functions/cluster-posts/index.ts
+ * Trigger: Cron (every 5 min)
+ */
+
+const EDGE_CLUSTER_POSTS = String.raw`import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  const auth = req.headers.get('Authorization');
+  if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Fetch ready, unclustered posts
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('id, embedding')
+    .eq('embedding_status', 'ready')
+    .is('cluster_id', null)
+    .limit(200);
+
+  if (error || !posts || posts.length === 0) {
+    return new Response('No posts', { status: 200 });
+  }
+
+  for (const post of posts) {
+    if (!post.embedding) continue;
+
+    const { data: nearest, error: rpcErr } = await supabase
+      .rpc('assign_nearest_centroid', { query_emb: post.embedding });
+
+    if (rpcErr) {
+      console.error('assign_nearest_centroid error', rpcErr);
+      continue;
+    }
+
+    let clusterId: number | null = null;
+
+    if (nearest && nearest.length > 0 && nearest[0].distance < 0.3) {
+      clusterId = nearest[0].id;
+    } else {
+      // Create new cluster with this embedding as centroid
+      const { data: newCluster, error: cErr } = await supabase
+        .from('clusters')
+        .insert({
+          centroid: post.embedding,
+          post_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (cErr || !newCluster) {
+        console.error('create cluster error', cErr);
+        continue;
+      }
+      clusterId = newCluster.id;
+    }
+
+    // Update post + cluster count
+    if (clusterId != null) {
+      await supabase.from('posts').update({ cluster_id: clusterId }).eq('id', post.id);
+      await supabase.rpc('update_cluster_count', { cluster_id: clusterId });
+    }
+  }
+
+  return new Response('Clustered batch');
+});`;
+
+
+/* === Edge Function 5: summarize-clusters ===================================
+ * Path: supabase/functions/summarize-clusters/index.ts
+ * Trigger: Cron (every 15 min)
+ */
+
+const EDGE_SUMMARIZE_CLUSTERS = String.raw`import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ai } from 'https://esm.sh/@supabase/supabase-js@2/ai';
+
+Deno.serve(async (req) => {
+  const auth = req.headers.get('Authorization');
+  if (auth !== 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const llm = ai.createTextGenerator('phi-3-mini');
+
+  // Get clusters that need summary update
+  const { data: clusters, error } = await supabase
+    .from('clusters')
+    .select('id, post_count, updated_at')
+    .gt('post_count', 5)
+    .limit(10);
+
+  if (error || !clusters || clusters.length === 0) {
+    return new Response('No clusters', { status: 200 });
+  }
+
+  for (const cluster of clusters) {
+    const { data: posts, error: pErr } = await supabase
+      .from('posts')
+      .select('content')
+      .eq('cluster_id', cluster.id)
+      .limit(20);
+
+    if (pErr || !posts || posts.length === 0) continue;
+
+    const joined = posts
+      .map((p) => p.content?.slice(0, 200) ?? '')
+      .join('\n');
+
+    const prompt = `You are summarizing discussion posts into a short topic label and description.
+Posts:
+${joined}
+
+Return 1–2 sentences describing the common topic.`;
+    const summary = await llm.run(prompt);
+
+    await supabase
+      .from('clusters')
+      .update({
+        summary,
+        label: summary.split('.')[0],
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', cluster.id);
+  }
+
+  return new Response('Summaries updated');
+});`;
+
+
+/* ============================================================================
+ * === STEP 3: HOW TO USE THIS FILE IN CURSOR ================================
+ * ==========================================================================*/
+
+/**
+ * 1) Copy this entire file into Cursor as e.g. "supabase_pipeline_spec.ts".
+ * 2) Ask Cursor:
+ *    - "Extract EDGE_APIFY_SCRAPE into supabase/functions/apify-scrape/index.ts"
+ *    - Repeat for EDGE_PARSE_STORAGE, EDGE_GENERATE_EMBEDDINGS,
+ *      EDGE_CLUSTER_POSTS, EDGE_SUMMARIZE_CLUSTERS.
+ * 3) Ask Cursor:
+ *    - "Create a SQL migration with SQL_SETUP contents."
+ * 4) In Supabase Dashboard:
+ *    - Create Storage bucket `scraped-data`
+ *    - Add Storage webhook: bucket scraped-data, event INSERT → parse-storage
+ *    - Set secrets: SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, APIFY_TOKEN.
+ * 5) Deploy:
+ *    supabase functions deploy apify-scrape parse-storage generate-embeddings cluster-posts summarize-clusters
+ *    supabase db push
+ */
+```

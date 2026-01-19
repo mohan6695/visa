@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "ollama": {
+      "command": "python",
+      "args": [
+        "/Users/mohanakrishnanarsupalli/visa/next-app/ollama_simple.py"
+      ],
+      "env": {
+        "OLLAMA_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "qwen2.5:3b"
+      }
+    },
+    "supabase-s3": {
+      "command": "python",
+      "args": [
+        "/Users/mohanakrishnanarsupalli/visa/next-app/supabase_s3_uploader.py"
+      ],
+      "env": {
+        "SUPABASE_ENDPOINT": "https://cycnichledvqbxevrwnt.storage.supabase.co/storage/v1/s3",
+        "SUPABASE_KEY_ID": "visakey:57cdc4296f52ea5078cbfdb138395166",
+        "SUPABASE_BUCKET": "posts"
+      }
+    }
+  }
+}

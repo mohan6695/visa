@@ -1,0 +1,54 @@
+"use client"
+
+interface AdInFeedProps {
+  slotId: string
+  className?: string
+}
+
+export function AdInFeed({ slotId, className = '' }: AdInFeedProps) {
+  return (
+    <div className={`ad-in-feed ${className} my-8`}>
+      <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block', width: '100%', height: '250px' }}
+          data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+ kwargs.get("max_tokens", 1000),
+                    "top_p": kwargs.get("top_p", 0.9),
+                }
+            }
+            
+            if system_prompt:
+                payload["system"] = system_prompt
+            
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json=payload
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    return data.get("response", "").strip()
+                else:
+                    raise Exception(f"Ollama API error: {response.status_code} - {response.text}")
+                    
+        except Exception as e:
+            return f"Error calling Ollama: {str(e)}          data-ad-slot={slotId}
+          data-ad-format="fluid"
+          data-ad-layout-key="-gw-3+1f"
+    
+    async def get_embedding(self, text: str) -> List[float]:
+        """Get embedding using Ollama embedding model"""
+        try:
+            async with httpx.AsyncClient(timeout-3b+1c"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(adsbygoogle = window.adsbygoogle || []).push({});`,
+          }}
+        />
+      </div>
+    </div>
+  )
+}

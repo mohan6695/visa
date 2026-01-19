@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import auth, chat, search, users, ai, health, supabase_posts
+from . import auth, chat, search, users, ai, health, supabase_posts, sidebar
 
 # Create main API router
 api_router = APIRouter()
@@ -12,3 +12,4 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 api_router.include_router(health.router, prefix="/health", tags=["health"])
 api_router.include_router(supabase_posts.router, prefix="/supabase", tags=["supabase"])
+api_router.include_router(sidebar.router, prefix="/sidebar", tags=["sidebar"])

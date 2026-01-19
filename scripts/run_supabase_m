@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+Run Supabase Migration Script
+Creates all tables from the existing migration files using MCP credentials.
+"""
+
+import os
+import sys
+
+# Supabase configuration from environment
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
+    print("Please set these environment variables:")
+    print('  export SUPABASE_URL="https://your-project.supabase.co"')
+    print('  export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"')
+    sys.exit(1)
+
+# Read the complete schema migration
+MIGRATION_FILE = "supabase_migrations/011_complete_schema_with_users.sql"
+
+if not os.path.exists(MIGRATION_FILE):
+    print(f"ERROR: Migration file not found: {MIGRATION_FILE}")
+    sys.exit(1)
+
+with open(MIGRATION_FILE, 'r') as f:
+    migration_sql = f.read()
+
+print(f"Supabase URL: {SUPABASE_URL}")
+print(f"Migration file: {MIGRATION_FILE}")
+print(f"SQL length: {len(migration_sql)} characters")
+print()
+
+print("To apply this migration, run the following command:")
+print()
+print("1. Using Supabase CLI:")
+print(f"   supabase db push --project-ref {SUPABASE_URL.split('//')[1].split('.')[0]}")
+print()
+print("2. Or manually via Supabase Dashboard:")
+print("   - Go to SQL Editor in Supabase")
+print("   - Copy contents from:", MIGRATION_FILE)
+print("   - Run the SQL")
+print()
+print("3. Or using curl:")
+print(f'   curl -X POST \\')
+print(f'     -H "Authorization: Bearer {SUPABASE_KEY[:20]}..." \\')
+print(f'     -H "Content-Type: application/json" \\')
+print(f'     -d \'{{"query": "{migration_sql[:100]}..."}}\' \\')
+print(f'     "{SUPABASE_URL}/rest/v1/rpc/execute_sql"')
+print()
+print("=" * 60)
+print("Migration file contents are ready in:")
+print(MIGRATION_FILE)
+print("=" * 60)

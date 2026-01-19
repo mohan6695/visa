@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""
+Create bucket using Supabase S3 API with AWS Signature V4
+"""
+
+import hmac
+import hashlib
+import TABLE post_clusters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE embedding_jobs ENABLE ROW LEVEL SECURITY;
+
+-- Posts: Public read, authenticated insert
+CREATE POLICY "Public posts are viewable by datetime
+import requests
+
+def sign(key, msg):
+    return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+
+def create_bucket_s3(host, everyone" ON posts
+    FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can create posts" ON posts
+    FOR INSERT WITH CHECK (auth.role() = ' access_key, secret_key, bucket_name):
+    """
+    Create bucket using S3 API with AWS Signature V4
+    """
+    region = 'us-east-1'
+    service = 'sauthenticated');
+
+CREATE POLICY "Users can update their own posts" ON posts
+    FOR UPDATE USING (auth.uid() = (SELECT id FROM posts WHERE id = posts.id LIMIT3'
+    
+    # HTTP request details for CreateBucket
+    method = 'PUT'
+    path = f'/{bucket_name}'
+    url = f'https://{host}{path}'
+    
+ 1));
+
+-- Embedding jobs: Service role only
+CREATE POLICY "Service role can manage embedding jobs" ON embedding_jobs
+    FOR ALL USING (auth.role() = 'service_role');
+
+--    # Timestamp
+    now = datetime.datetime.now(datetime.UTC)
+    amz_date = now.strftime('%Y%m%dT%H%M%SZ')
+    date_stamp Post clusters: Read only
+CREATE POLICY "Public clusters are viewable" ON post_clusters
+    FOR SELECT USING (true);
+
+-- ================================= = now.strftime('%Y%m%d')
+    
+    # Empty payload for bucket creation
+    payload_hash = hashlib.sha256(b'').hexdigest()
+    
+    headers = {
+        '============
+-- 10. Helper Functions
+-- =============================================
+CREATE OR REPLACE FUNCTION update_post_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_posts_update_timestamp
+BEFORE UPDATE ON posts
+FOR EACH ROWhost': host,
+        'x-amz-content-sha256': payload_hash,
+        'x-amz-date': amz_date
+    }
+    
+    signed_headers = ';'.join(sorted(headers
+EXECUTE FUNCTION update_post_updated_at();
+
+-- =============================================
+-- 11. Seed Data - Initial Clusters
+-- =============================================
+INSERT INTO post_clusters (cluster_id, centroid.keys()))
+    
+    canonical_headers = '\n'.join([f"{k.lower()}:{v}" for k, v in sorted(headers.items())]) + '\n'
+    
+    canonical_request

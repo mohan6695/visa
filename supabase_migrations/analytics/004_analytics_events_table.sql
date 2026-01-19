@@ -52,6 +52,35 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     load_time_ms INTEGER,
     time_on_page_ms INTEGER,
     
+    -- Session management
+    session_start BOOLEAN DEFAULT FALSE,
+    session_end BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Event categorization
+    event_category TEXT,
+    event_action TEXT,
+    event_label TEXT,
+    
+    -- Enhanced user tracking
+    user_type TEXT DEFAULT 'anonymous', -- anonymous, authenticated, admin
+    user_status TEXT DEFAULT 'active', -- active, inactive, suspended
+    
+    -- Conversion tracking
+    conversion_value DECIMAL(10,2),
+    conversion_currency TEXT DEFAULT 'USD',
+    conversion_step INTEGER,
+    
+    -- Enhanced referrer tracking
+    referrer_type TEXT, -- direct, search, social, email, etc.
+    referrer_domain TEXT,
+    
+    -- Performance and quality metrics
+    page_load_time INTEGER,
+    dom_content_loaded INTEGER,
+    first_contentful_paint INTEGER,
+    
     -- Custom dimensions
     dimension_1 TEXT,
     dimension_2 TEXT,
@@ -79,6 +108,23 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events(c
 CREATE INDEX IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_distinct_id ON analytics_events(distinct_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_properties_gin ON analytics_events USING GIN(properties);
+
+-- Enhanced indexes for new columns
+CREATE INDEX IF NOT EXISTS idx_analytics_events_session_id ON analytics_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_event_category ON analytics_events(event_category);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user_type ON analytics_events(user_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user_status ON analytics_events(user_status);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_is_active ON analytics_events(is_active);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_last_seen ON analytics_events(last_seen);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_session_start ON analytics_events(session_start);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_session_end ON analytics_events(session_end);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_referrer_type ON analytics_events(referrer_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_conversion_value ON analytics_events(conversion_value);
+
+-- Composite indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user_session ON analytics_events(user_id, session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_active_users ON analytics_events(is_active, last_seen);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_conversions ON analytics_events(conversion_value, conversion_step);
 
 -- Partitioning for large datasets (optional)
 -- CREATE TABLE analytics_events_y2024m01 PARTITION OF analytics_events 

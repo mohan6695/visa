@@ -1,0 +1,8 @@
+# Cron job configuration for embedding worker
+# Add to crontab using: crontab -e
+
+# Run embedding worker every minute
+* * * * * cd /Users/mohanakrishnanarsupalli/visa && python -m backend.scripts.embedding_worker --batch-size 100 --interval 60 >> /tmp/embedding_worker.log 2>&1
+
+# Alternative: Run as a systemd service (for production)
+# See: backend/src/scripts/embedding-worker.service

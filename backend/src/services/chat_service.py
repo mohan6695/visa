@@ -7,10 +7,12 @@ from ..models.community import Community
 from ..models.user import User
 from ..models.notification import Notification
 from ..core.config import settings
+from .akismet_service import get_akismet_service
 import logging
 import json
 
 logger = logging.getLogger(__name__)
+
 
 class ChatService:
     def __init__(self, db: Session):
@@ -52,10 +54,44 @@ class ChatService:
         community_id: int,
         user_id: int,
         content: str,
-        message_type: str = 'text'
+        message_type: str = 'text',
+        user_ip: str = "127.0.0.1",
+        user_agent: str = "Mozilla/5.0"
     ) -> Optional[Dict[str, Any]]:
-        """Send a chat message to a community"""
+        """Send a chat message to a community with spam filtering"""
         try:
+            # Check for spam using Akismet
+            akismet_service = get_akismet_service()
+            
+            # Get user info for Akismet
+            user_query = text("SELECT username FROM users WHERE id = :user_id")
+            user_result = self.db.execute(user_query, {'user_id': user_id}).first()
+            username = user_result.username if user_result else "anonymous"
+            
+            # Perform spam check
+            spam_result = await akismet_service.check_spam(
+                content=content,
+                user_ip=user_ip,
+                user_agent=user_agent,
+                username=username
+            )
+            
+            # Log spam check result
+            if spam_result.get("is_spam"):
+                logger.warning(f"Spam detected from user {user_id} in community {community_id}: {spam_result}")
+                # Optionally report to Akismet as spam
+                await akismet_service.report_spam(
+                    content=content,
+                    user_ip=user_ip,
+                    user_agent=user_agent,
+                    username=username
+                )
+                return {
+                    'id': None,
+                    'error': 'Message rejected as spam',
+                    'is_spam': True
+                }
+            
             # Create chat message
             chat_message = Comment(
                 community_id=community_id,
@@ -82,7 +118,8 @@ class ChatService:
                 'content': content,
                 'message_type': message_type,
                 'created_at': chat_message.created_at.isoformat(),
-                'is_chat_message': True
+                'is_chat_message': True,
+                'spam_checked': True
             }
             
             self.db.commit()
@@ -197,6 +234,7 @@ class ChatService:
     ) -> Dict[str, Any]:
         """Search chat messages in a community"""
         try:
+            search_query = text("""
             search_query = text("""
                 SELECT c.*, u.username, u.avatar_url
                 FROM comments c

@@ -1,0 +1,26 @@
+-- Cleanup script - Run this first to drop existing tables
+DROP TABLE IF EXISTS message_read_receipts CASCADE;
+DROP TABLE IF EXISTS group_message_likes CASCADE;
+DROP TABLE IF EXISTS user_presence CASCADE;
+DROP TABLE IF EXISTS group_messages CASCADE;
+DROP TABLE IF EXISTS comment_likes CASCADE;
+DROP TABLE IF EXISTS post_likes CASCADE;
+DROP TABLE IF EXISTS user_interactions CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS post_tags CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
+DROP TABLE IF EXISTS posts CASCADE;
+DROP TABLE IF EXISTS community_members CASCADE;
+DROP TABLE IF EXISTS community_moderators CASCADE;
+DROP TABLE IF EXISTS communities CASCADE;
+DROP TABLE IF EXISTS group_members CASCADE;
+DROP TABLE IF EXISTS groups CASCADE;
+DROP TABLE IF EXISTS visa_requirements CASCADE;
+DROP TABLE IF EXISTS visa_types CASCADE;
+DROP TABLE IF EXISTS countries CASCADE;
+DROP TABLE IF EXISTS tags CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS analytics_events CASCADE;
+DROP TABLE IF EXISTS user_sessions CASCADE;
+
+SELECT 'Cleanup complete! Tables dropped.' as status;

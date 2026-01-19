@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ollama": {
+      "command": "python",
+      "args": ["${env:VISA_PROJECT_PATH}/ollama_mcp_server.py"],
+      "disabled": false,
+      "env": {
+        "OLLAMA_URL": "${env:OLLAMA_URL}",
+        "OLLAMA_MODEL": "${env:OLLAMA_MODEL}"
+      }
+    }
+  }
+}
