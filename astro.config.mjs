@@ -7,8 +7,7 @@ import cloudflare from '@astrojs/cloudflare';
 export default defineConfig({
   output: 'server',
   adapter: cloudflare({
-    mode: 'directory',
-    functionPerRoute: false,
+    imageService: 'compile',
   }),
 
   integrations: [
