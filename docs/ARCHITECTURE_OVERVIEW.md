@@ -1,6 +1,6 @@
-# Visa Q&A and Group Chat Platform Architecture
+# Architecture Overview
 
-## 1. System Overview
+## Overview
 
 The Visa Q&A and Group Chat Platform is a high-performance web application designed to provide real-time communication, knowledge sharing, and community support for visa applicants. The platform features:
 
@@ -12,9 +12,9 @@ The Visa Q&A and Group Chat Platform is a high-performance web application desig
 - Semantic search across content with pgvector
 - Low-latency responses (<600ms P99) through efficient caching
 
-## 2. Architecture Components
+## Architecture Components
 
-### 2.1 Backend Architecture
+### Backend Architecture
 
 The backend follows a modular, service-oriented architecture with the following components:
 

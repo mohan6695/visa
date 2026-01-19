@@ -1,4 +1,4 @@
-# Visa Q&A and Group Chat Platform - Implementation Summary
+# Implementation Summary
 
 ## Overview
 
