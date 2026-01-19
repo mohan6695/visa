@@ -1,386 +1,289 @@
-# Visa Community Platform - Chat Feature Implementation
+# Visa Community Platform - Astro Edition
 
-This document provides a comprehensive guide for the implemented chat feature using Supabase Realtime and pgvector for Q&A functionality.
+> **Migrated from Next.js to Astro** with Cloudflare Pages/Workers/R2 compatibility
 
-## 🏗️ Architecture Overview
-
-### Core Components
-
-1. **Supabase Realtime**: WebSocket-based real-time communication
-2. **PostgreSQL with pgvector**: Database with semantic search capabilities
-3. **Redis**: Caching layer for performance optimization
-4. **AI Service**: Cost-effective AI answering with multiple provider support
-
-### Technology Stack
-
-- **Frontend**: Next.js with Supabase Realtime client
-- **Backend**: FastAPI with Supabase integration
-- **Database**: PostgreSQL with pgvector extension
-- **Caching**: Redis for aggressive caching strategy
-- **AI Providers**: Groq, OpenRouter, Together AI, or local Ollama
+A modern visa information and community platform built with Astro, optimized for edge deployment on Cloudflare infrastructure.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Node.js (for frontend development)
-- Python 3.10+ (for backend development)
+- Node.js 18+
+- Python 3.10+ (for backend)
+- Docker and Docker Compose (optional)
 
-### Installation
+### Development
 
-1. **Clone the repository**
+```bash
+# Install dependencies
+npm install
+
+# Start Astro dev server
+npm run dev
+
+# Start backend (in another terminal)
+cd backend
+pip install -r requirements.txt
+uvicorn src.main:app --reload
+```
+
+Visit **http://localhost:4321** to see the application.
+
+### Build
+
+```bash
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## 🏗️ Architecture
+
+### Frontend (Astro)
+- **Framework**: Astro v5 with React islands
+- **Styling**: Tailwind CSS
+- **Deployment**: Cloudflare Pages
+- **Adapter**: `@astrojs/cloudflare` (server-side rendering)
+
+### Backend (FastAPI)
+- **Framework**: FastAPI with Supabase
+- **Database**: PostgreSQL with pgvector
+- **Caching**: Redis
+- **AI Providers**: Groq, OpenRouter (Ollama removed)
+
+### Infrastructure
+- **Hosting**: Cloudflare Pages (frontend) + Workers (API)
+- **Storage**: Cloudflare R2
+- **Cache**: Cloudflare KV
+- **Database**: Supabase PostgreSQL
+
+## 📦 Tech Stack
+
+### Core Dependencies
+- **astro** - Modern static site generator
+- **@astrojs/react** - React integration for Astro
+- **@astrojs/tailwind** - Tailwind CSS integration
+- **@astrojs/cloudflare** - Cloudflare Pages adapter
+- **react** & **react-dom** - For interactive components
+- **@supabase/supabase-js** - Supabase client
+- **@tanstack/react-query** - Data fetching and caching
+- **zustand** - State management
+- **wrangler** - Cloudflare CLI for deployment
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **Supabase** - PostgreSQL database
+- **Redis** - High-performance caching
+- **pgvector** - Semantic search capabilities
+
+## 🌐 Deployment
+
+### Cloudflare Pages
+
+1crypto **Deploy to Cloudflare:**
    ```bash
-   git clone <repository-url>
-   cd visa-community-platform
+   npm run deploy
    ```
 
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+2. **Configure environment variables** in Cloudflare dashboard:
+   ```
+   SUPABASE_URL=your-supabase-url
+   SUPABASE_KEY=your-supabase-key
+   GROQ_API_KEY=your-groq-api-key
+   OPENROUTER_API_KEY=your-openrouter-api-key
+   R2_ACCESS_KEY_ID=your-r2-access-key
+   R2_SECRET_ACCESS_KEY=your-r2-secret-key
    ```
 
-3. **Start services with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+3. **Create R2 bucket** named `visa-platform-storage`
 
-4. **Run database migrations**
-   ```bash
-   # Connect to PostgreSQL and run the migration
-   docker-compose exec postgres psql -U postgres -d visa_community -f supabase_migrations/001_chat_schema.sql
-   ```
+4. **Create KV namespace** for caching and update `wrangler.toml`
 
-### Development Setup
+### Backend Deployment
 
-#### Backend Development
+```bash
+# Using Docker Compose
+docker-compose up -d
 
-1. **Install Python dependencies**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
-
-2. **Run the backend server**
-   ```bash
-   uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-#### Frontend Development
-
-1. **Install Node.js dependencies**
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-2. **Run the frontend development server**
-   ```bash
-   npm run dev
-   ```
-
-## 📊 Database Schema
-
-### New Tables
-
-#### `group_messages`
-- Core table for chat messages
-- Includes pgvector embeddings for semantic search
-- Full-text search with TSVECTOR
-- Optimized indexes for performance
-
-#### `message_read_receipts`
-- Tracks which messages users have read
-- Enables unread message counting
-- Supports read receipts functionality
-
-#### `user_presence`
-- Tracks user online status in groups
-- Enables presence indicators
-- Optimized for real-time updates
-
-#### `group_message_likes`
-- Message reaction system
-- Supports engagement tracking
-- Social features integration
-
-### Migration Script
-
-The migration script (`supabase_migrations/001_chat_schema.sql`) includes:
-- Table creation with proper constraints
-- Index creation for performance
-- Row Level Security (RLS) policies
-- Triggers for automatic updates
-- Permission grants
+# Or deploy to your preferred platform (Render, Railway, etc.)
+```
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-Key configuration options in `.env`:
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://postgres:password@localhost:5432/visa_community
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# Supabase
-SUPABASE_URL=your-supabase-url
-SUPABASE_KEY=your-supabase-anon-key
-
-# AI Providers
+# AI Provider (groq or openrouter)
 AI_PROVIDER=groq
 GROQ_API_KEY=your-groq-api-key
 OPENROUTER_API_KEY=your-openrouter-api-key
-OLLAMA_URL=http://localhost:11434
+
+# Supabase
+SUPABASE_URL=your-supabase-url
+SUPABASE_KEY=your-supabase-key
+
+# Cloudflare
+CLOUDFLARE_ACCOUNT_ID=your-account-id
+R2_BUCKET_NAME=visa-platform-storage
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+
+# Redis
+REDIS_URL=redis://localhost:6379
 ```
 
-### Supabase Setup
+### Wrangler Configuration
 
-1. **Create a Supabase project**
-2. **Enable pgvector extension**
-3. **Set up Row Level Security (RLS)**
-4. **Configure Realtime subscriptions**
+Edit `wrangler.toml` to customize:
+- R2 bucket bindings
+- KV namespace bindings  
+- Build settings
+- Environment variables
 
-### Redis Setup
+## 📁 Project Structure
 
-Redis is used for:
-- Aggressive caching of AI answers (70-90% cost reduction)
-- User presence tracking
-- Rate limiting
-- Session management
+```
+visa-1/
+├── src/
+│   ├── components/        # Astro & React components
+│   │   └── ads/          # Ad components (AdBanner, AdSidebar, etc.)
+│   ├── layouts/          # Page layouts
+│   ├── pages/            # Astro pages (file-based routing)
+│   ├── styles/           # Global styles
+│   └── lib/              # Utilities and helpers
+├── backend/              # FastAPI backend
+│   ├── src/
+│   │   ├── api/         # API endpoints
+│   │   ├── services/    # Business logic (AI, embeddings, etc.)
+│   │   └── core/        # Configuration
+│   └── tests/           # Backend tests
+├── public/              # Static assets
+├── dist/                # Build output (for deployment)
+├── astro.config.mjs     # Astro configuration
+├── wrangler.toml        # Cloudflare configuration
+├── tailwind.config.mjs  # Tailwind configuration
+└── docker-compose.yml   # Docker services
+```
 
 ## 🤖 AI Integration
 
+The platform uses cloud-based AI providers for Q&A functionality:
+
 ### Supported Providers
 
-1. **Groq**: High-throughput, low-cost models
-2. **OpenRouter**: Access to multiple AI models
-3. **Ollama**: Local AI models
-4. **Together AI**: Alternative cloud provider
+1. **Groq** (Recommended)
+   - Fast inference with LLaMA models
+   - Cost-effective pricing
+   - Set `AI_PROVIDER=groq`
+
+2. **OpenRouter**
+   - Access to multiple AI models
+   - Flexible model selection
+   - Set `AI_PROVIDER=openrouter`
+
+**Note:** Ollama (local AI) has been removed in this version. All AI processing now uses cloud providers.
 
 ### Caching Strategy
 
-- **Cache TTL**: 1-6 hours based on content freshness
-- **Cache Keys**: Hash-based for question normalization
-- **Hit Rate**: Expected 70-90% for repeated questions
-- **Cost Reduction**: 70-90% compared to uncached AI usage
+- **Redis caching** for Q&A responses (1-6 hour TTL)
+- **70-90% cache hit rate** for common questions
+- **Significant cost reduction** through aggressive caching
 
-### Multi-Tier Access
+## 🔬 Cloudflare Workers AI Clustering
 
-- **Free Tier**: Cached answers only
-- **Premium Tier**: Real-time AI with full context
-- **Context Optimization**: Summaries + recent messages
+Automatic post clustering using Cloudflare's AI infrastructure:
 
-## 🌐 API Endpoints
+### How It Works
 
-### Chat Endpoints
+1. **Embeddings**: Cloudflare Workers AI (BGE model, 768-dim)
+2. **Clustering**: Llama 3.2 analyzes posts and groups by topic
+3. **Storage**: Supabase PostgreSQL with pgvector
+4. **Automation**: Cron triggers every 15 minutes
 
-- `GET /api/v1/chat/history` - Get chat history
-- `POST /api/v1/chat/send` - Send chat message
-- `GET /api/v1/chat/members` - Get community members
-- `GET /api/v1/chat/online-status` - Get online users
-- `POST /api/v1/chat/mark-read` - Mark message as read
-- `GET /api/v1/chat/unread-count` - Get unread count
-- `GET /api/v1/chat/search` - Search chat messages
-- `GET /api/v1/chat/activity` - Get recent activity
+### Deploy Clustering Worker
 
-### AI Endpoints
+```bash
+# Set secrets
+wrangler secret put SUPABASE_URL
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY  
+wrangler secret put CF_ACCOUNT_ID
+wrangler secret put CF_API_TOKEN
 
-- `POST /api/v1/ai/answer` - Answer question with RAG
-- `GET /api/v1/ai/search` - Semantic search
-- `POST /api/v1/ai/summarize` - Thread summarization
-- `GET /api/v1/ai/cost-estimate` - Cost estimation
-- `GET /api/v1/ai/cache-status` - Check cache status
-- `GET /api/v1/ai/providers` - Get available providers
+# Deploy
+wrangler deploy --config wrangler.clustering.toml
+```
 
-### Health Check Endpoints
+See [Cloudflare Clustering Deployment Guide](docs/CLOUDFLARE_CLUSTERING_DEPLOYMENT.md) for details.
 
-- `GET /api/v1/health` - Basic health check
-- `GET /api/v1/health/detailed` - Detailed health metrics
-- `GET /api/v1/health/cache` - Cache-specific health
-- `GET /api/v1/health/ai` - AI service health
-- `GET /api/v1/health/chat` - Chat service health
+### Benefits
 
-## 🎨 Frontend Components
+- ✅ **No Ollama needed** - fully cloud-based
+- ✅ **Automatic** - runs on schedule
+- ✅ **Cost-effective** - ~$1-5/month for 10K posts
+- ✅ **Scalable** - leverages Cloudflare's edge network
 
-### GroupChat Component
+## 📊 Features
 
-Real-time chat interface with:
-- WebSocket connections via Supabase Realtime
-- Message history loading
-- Typing indicators
-- Presence tracking
-- Read receipts
-- Message reactions
+- ✅ **Visa Information** - Comprehensive visa requirements and country data
+- ✅ **Real-time Chat** - Community discussions with Supabase Realtime
+- ✅ **AI-Powered Q&A** - Intelligent answers using RAG (Retrieval-Augmented Generation)
+- ✅ **Semantic Search** - pgvector-powered content search
+- ✅ **Ad Monetization** - AdSense integration with 50%+ ad coverage
+- ✅ **Subscription Management** - User tier management
+- ✅ **Edge Deployment** - Optimized for Cloudflare's global network
+- ✅ **Server-Side Rendering** - Fast initial page loads
 
-### QAComponent
+## 🔐 Security
 
-AI-powered Q&A interface with:
-- Question input and submission
-- Answer display with source attribution
-- Search functionality
-- Question history
-- Cache status indicators
-
-## 📈 Monitoring and Observability
-
-### Health Checks
-
-Comprehensive health check endpoints provide:
-- Service status (database, Redis, Supabase)
-- Performance metrics
-- Cache hit rates
-- AI provider status
-- Feature availability
-
-### Metrics
-
-Key metrics to monitor:
-- Real-time connection count
-- Message throughput (messages/second)
-- AI API usage and costs
-- Cache hit rates
-- Database query performance
-
-### Logging
-
-Structured logging with:
-- Request/response logging
-- Error tracking
-- Performance metrics
-- Security events
-
-## 🚀 Deployment
-
-### Docker Compose
-
-The provided `docker-compose.yml` includes:
-- Backend API service
-- Frontend application
-- PostgreSQL database
-- Redis cache
-- Ollama for local AI (optional)
-- Nginx reverse proxy (production profile)
-- Prometheus and Grafana (monitoring profile)
-
-### Production Deployment
-
-1. **Use production profiles**
-   ```bash
-   docker-compose --profile production up -d
-   ```
-
-2. **Configure SSL/TLS**
-   - Update nginx configuration
-   - Add SSL certificates
-   - Configure domain names
-
-3. **Set up monitoring**
-   ```bash
-   docker-compose --profile monitoring up -d
-   ```
-
-### Scaling
-
-#### Horizontal Scaling
-
-- **Backend**: Multiple FastAPI instances behind load balancer
-- **Database**: Read replicas for query scaling
-- **Redis**: Cluster setup for distributed caching
-- **Frontend**: CDN for static assets
-
-#### Supabase Scaling
-
-- **Starter Plan**: $25/month (25M rows, 500GB storage)
-- **Pro Plan**: $50/month (100M rows, 2TB storage)
-- **Enterprise**: Custom pricing for millions of users
-
-## 🔒 Security
-
-### Row Level Security (RLS)
-
-All chat tables use RLS policies:
-- Users can only access messages in groups they belong to
-- Read receipts are user-specific
-- Presence tracking respects privacy settings
-
-### Authentication
-
-- JWT-based authentication
-- Supabase Auth integration
-- Role-based access control
-- Secure password hashing
-
-### Data Privacy
-
-- Message content is encrypted in transit
-- Embeddings are stored securely
-- Cache keys don't expose sensitive information
+- **Row Level Security (RLS)** on all database tables
+- **JWT authentication** via Supabase Auth
+- **Security headers** configured (CSP, X-Frame-Options, etc.)
+- **HTTPS only** in production
+- **API rate limiting** (Redis-based)
 
 ## 🧪 Testing
 
-### Unit Tests
-
+### Backend Tests
 ```bash
 cd backend
-pytest tests/
+pytest tests/ -v
 ```
 
-### Integration Tests
-
+### Build Verification
 ```bash
-cd backend
-pytest tests/integration/
-```
-
-### Frontend Tests
-
-```bash
-cd frontend
-npm test
+npm run build
 ```
 
 ## 📚 Documentation
 
-- [CHAT_ARCHITECTURE_IMPLEMENTATION.md](CHAT_ARCHITECTURE_IMPLEMENTATION.md) - Complete implementation guide
-- [API Documentation](docs/api.md) - Detailed API specifications
-- [Deployment Guide](docs/deployment.md) - Production deployment steps
+- [Implementation Plan](/.gemini/antigravity/brain/8be1c08d-2619-4d90-b841-d19911febfd0/implementation_plan.md) - Migration strategy
+- [Walkthrough](/.gemini/antigravity/brain/8be1c08d-2619-4d90-b841-d19911febfd0/walkthrough.md) - Detailed migration notes
+- [Task Breakdown](/.gemini/antigravity/brain/8be1c08d-2619-4d90-b841-d19911febfd0/task.md) - Project tasks and progress
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for your changes
-5. Submit a pull request
-
-## 🐛 Bug Reports
-
-Please use the GitHub issue tracker to report bugs with:
-- Detailed description of the issue
-- Steps to reproduce
-- Expected vs. actual behavior
-- Environment information
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Supabase for real-time database capabilities
-- pgvector for semantic search functionality
-- Redis for high-performance caching
-- FastAPI for modern Python web framework
-- Next.js for React-based frontend framework
+- **Astro framework** for modern static site generation
+- **Cloudflare** for edge infrastructure
+- **Supabase** for real-time database capabilities
+- **Groq** & **OpenRouter** for AI processing
+- **Tailwind CSS** for styling
 
-## 📞 Support
+---
 
-For support and questions:
-- Create a GitHub issue
-- Join our Discord community
-- Email us at support@visa-community.com
+**Migration Notes:** This project was migrated from Next.js to Astro in January 2026. All Ollama dependencies were removed in favor of cloud-based AI providers. The application is now optimized for Cloudflare Pages/Workers/R2 deployment.

@@ -51,14 +51,6 @@ class Settings:
         return settings.openrouter_api_key
     
     @property
-    def OLLAMA_URL(self) -> str:
-        return settings.ollama_url
-    
-    @property
-    def OLLAMA_MODEL(self) -> str:
-        return settings.ollama_model
-    
-    @property
     def STRIPE_SECRET_KEY(self) -> str:
         return settings.stripe_secret_key
     

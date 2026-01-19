@@ -140,18 +140,16 @@ class AIService:
     ) -> Optional[str]:
         """Call AI model for text generation"""
         try:
-            # This would integrate with your chosen AI provider
-            # Examples: Groq, OpenRouter, Together AI, or local Ollama
+            # Integrate with AI providers: Groq or OpenRouter
             
             if settings.AI_PROVIDER == "groq":
                 return await self._call_groq_api(prompt, model, max_tokens, temperature)
             elif settings.AI_PROVIDER == "openrouter":
                 return await self._call_openrouter_api(prompt, model, max_tokens, temperature)
-            elif settings.AI_PROVIDER == "ollama":
-                return await self._call_ollama_api(prompt, model, max_tokens, temperature)
             else:
                 logger.error(f"Unsupported AI provider: {settings.AI_PROVIDER}")
                 return None
+                
                 
         except Exception as e:
             logger.error(f"Failed to call AI model: {e}")
@@ -271,48 +269,6 @@ class AIService:
             logger.error(f"OpenRouter API error: {e}")
             return None
     
-    async def _call_ollama_api(
-        self, 
-        prompt: str,
-        model: str,
-        max_tokens: int,
-        temperature: float
-    ) -> Optional[str]:
-        """Call Ollama API for text generation"""
-        try:
-            import httpx
-            
-            # Prepare the request payload for Ollama
-            payload = {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens
-                }
-            }
-            
-            # Make the API call to local Ollama instance
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(
-                    f"{settings.OLLAMA_URL}/api/generate",
-                    json=payload
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    return data["response"].strip()
-                else:
-                    logger.error(f"Ollama API error: {response.status_code} - {response.text}")
-                    return None
-                    
-        except httpx.TimeoutException:
-            logger.error("Ollama API timeout")
-            return None
-        except Exception as e:
-            logger.error(f"Ollama API error: {e}")
-            return None
     
     async def answer_question(
         self, 
@@ -449,7 +405,6 @@ class AIService:
             cost_rates = {
                 "groq": {"prompt": 0.0005, "response": 0.0005},  # Example rates
                 "openrouter": {"prompt": 0.001, "response": 0.001},
-                "ollama": {"prompt": 0.0, "response": 0.0}  # Local model, no API cost
             }
             
             provider = settings.AI_PROVIDER

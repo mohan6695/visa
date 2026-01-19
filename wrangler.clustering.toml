@@ -1,0 +1,22 @@
+name = "visa-clustering-worker"
+main = "workers/clustering.py"
+compatibility_date = "2026-01-19"
+
+# Cron triggers for automatic clustering
+[triggers]
+crons = ["*/15 * * * *"]  # Run every 15 minutes
+
+# Production environment
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Development environment  
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# Required secrets:
+# - SUPABASE_URL
+# - SUPABASE_SERVICE_ROLE_KEY
+# - CF_ACCOUNT_ID
+# - CF_API_TOKEN

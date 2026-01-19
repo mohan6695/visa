@@ -1,0 +1,30 @@
+---
+interface Props {
+  slotId: string;
+  format?: 'horizontal' | 'vertical' | 'rectangle';
+  className?: string;
+}
+
+const { slotId, format = 'horizontal', className = '' } = Astro.props;
+
+const formatDimensions = {
+  horizontal: 'w-full h-[90px]',
+  vertical: 'w-[160px] h-[600px]',
+  rectangle: 'w-[300px] h-[250px]',
+};
+---
+
+<div class={`ad-banner ${formatDimensions[format]} ${className}`}>
+  <ins
+    class="adsbygoogle"
+    style="display: block"
+    data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+    data-ad-slot={slotId}
+    data-ad-format={format}
+    data-full-width-responsive="true"
+  ></ins>
+</div>
+
+<script is:inline>
+  (adsbygoogle = window.adsbygoogle || []).push({});
+</script>

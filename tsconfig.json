@@ -1,0 +1,50 @@
+{
+    "extends": "astro/tsconfigs/strict",
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "jsx": "react-jsx",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "checkJs": false,
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".astro",
+        "frontend",
+        "next-app",
+        "archive"
+    ]
+}

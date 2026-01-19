@@ -1,0 +1,40 @@
+name = "visa-platform"
+compatibility_date = "2024-01-19"
+pages_build_output_dir = "dist"
+
+# Cloudflare Pages Configuration
+[build]
+command = "npm run build"
+publish = "dist"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+
+# R2 Bucket Bindings
+[[r2_buckets]]
+binding = "VISA_STORAGE"
+bucket_name = "visa-platform-storage"
+preview_bucket_name = "visa-platform-storage-preview"
+
+# KV Namespace Bindings (for caching)
+[[kv_namespaces]]
+binding = "VISA_CACHE"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# Compatibility flags
+[compatibility_flags]
+nodejs_compat = true
+
+# Build configuration
+[build.environment]
+NODE_VERSION = "18"
+
+# Functions configuration
+[functions]
+directory = "functions"
+
+# Local development
+[dev]
+port = 4321

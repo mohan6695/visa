@@ -2,18 +2,15 @@
   "name": "visa-platform",
   "version": "1.0.0",
   "description": "Visa Platform - Your Gateway to Global Travel",
-  "main": "index.html",
+  "type": "module",
   "scripts": {
-    "dev": "python -m http.server 8000",
-    "start": "python -m http.server 8000",
-    "dev:node": "npx http-server -p 8000",
-    "dev:docker": "docker-compose up -d",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "wrangler pages deploy dist",
     "setup:backend": "cd backend && pip install -r requirements.txt",
-    "setup:frontend": "cd frontend && npm install",
     "seed:data": "cd backend && python src/scripts/seed_data.py",
-    "build:frontend": "cd frontend && npm run build",
-    "test:backend": "cd backend && pytest tests/ -v",
-    "test:frontend": "cd frontend && npm run test"
+    "test:backend": "cd backend && pytest tests/ -v"
   },
   "keywords": [
     "visa",
@@ -25,6 +22,25 @@
   "author": "Visa Platform Team",
   "license": "MIT",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "@astrojs/cloudflare": "^12.6.12",
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.16.11",
+    "http-server": "^14.1.1",
+    "tailwindcss": "^3.4.19"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "@tanstack/react-query": "^5.90.19",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-hot-toast": "^2.6.0",
+    "tailwind-merge": "^3.4.0",
+    "wrangler": "^4.59.2",
+    "zustand": "^5.0.10"
   }
 }
