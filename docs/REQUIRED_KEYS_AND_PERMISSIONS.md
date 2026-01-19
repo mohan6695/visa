@@ -24,23 +24,60 @@ wrangler kv:namespace create "SESSION"
 
 ## 2. Cloudflare API Token Permissions
 
-The API Token used for **deployment** (in GitHub Actions or CI/CD) needs the following permissions:
+### Where to Create
+1. Go to **Cloudflare Dashboard** → **My Profile** (top right) → **API Tokens**.
+2. Click **Create Token** → **Custom Token**.
+3. Name it "Visa Deployment Token".
 
-| Permission Group | Access Level | Reason |
-|------------------|--------------|--------|
-| **Workers Scripts** | Edit | Deploy workers |
-| **Workers Pages** | Edit | Deploy Pages/Assets |
-| **Workers KV Storage** | Edit | Bind/Write to KV |
-| **Workers R2 Storage** | Edit | Bind/Access R2 buckets |
-| **Account Settings** | Read | Verify account details |
-| **User Details** | Read | Verify user |
-| **Workers AI** | Read/Run | Use AI models |
+### Permissions to Select
+Under **Permissions**, ensure you add ALL of these:
 
-*Note: If you get an error accessing `/r2/buckets/...`, your token likely lacks **Workers R2 Storage** permissions.*
+| Permission Group | Access Level | UI Selection Path |
+|------------------|--------------|-------------------|
+| **Account** | **Workers R2 Storage** | Edit | Account → Workers R2 Storage → Edit |
+| **Account** | **Workers KV Storage** | Edit | Account → Workers KV Storage → Edit |
+| **Account** | **Workers Scripts** | Edit | Account → Workers Scripts → Edit |
+| **Account** | **Workers REST API** | Edit | Account → Workers Pages → Edit (if visible) or All Account Settings |
+| **Account** | **Pages** | Edit | Account → Pages → Edit |
+| **Account** | **Workers AI** | Read/Run | Account → Workers AI → Read |
+
+*Tip: For "Account" permissions, ensure you select "Include" -> "All accounts" or your specific account.*
 
 ---
 
-## 3. Required Secrets (Environment Variables)
+## 3. How to Setup KV (Key-Value Storage)
+
+### Step 1: Create Namespaces
+You need two namespaces. Run these commands in your project root:
+
+```bash
+# Production Cache
+npx wrangler kv:namespace create "VISA_CACHE"
+
+# Session Storage
+npx wrangler kv:namespace create "SESSION"
+```
+
+### Step 2: Update `wrangler.toml`
+The commands above will output `id` strings (e.g., `id = "209c..."`). Copy these into your `wrangler.toml` file:
+
+```toml
+# In wrangler.toml
+
+[[kv_namespaces]]
+binding = "VISA_CACHE"
+id = "PASTE_VISA_CACHE_ID_HERE"
+preview_id = "PASTE_VISA_CACHE_PREVIEW_ID_HERE"
+
+[[kv_namespaces]]
+binding = "SESSION"
+id = "PASTE_SESSION_ID_HERE"
+preview_id = "PASTE_SESSION_PREVIEW_ID_HERE"
+```
+
+---
+
+## 4. Required Secrets (Environment Variables)
 
 These must be set in your GitHub Repository Secrets or Cloudflare Dashboard (Settings -> Variables).
 
