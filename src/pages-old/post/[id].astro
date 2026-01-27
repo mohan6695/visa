@@ -1,0 +1,49 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import type { PostRow } from '../../lib/types';
+import { fetchPosts } from '../../lib/supabase';
+
+const { id } = Astro.params;
+let post: PostRow | undefined;
+
+try {
+  const posts = await fetchPosts('550e8400-e29b-41d4-a716-446655440001');
+  post = posts.find(p => p.id === id);
+} catch (error) {
+  console.error('Error fetching post:', error);
+}
+---
+
+{post ? (
+  <Layout title={post.title}>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-4">{post.title}</h1>
+        <div class="text-sm text-gray-500 mb-4">
+          {new Date(post.created_at).toLocaleDateString()} • {post.source} • {post.view_count} views
+        </div>
+        <div class="prose max-w-none">
+          <p>{post.content}</p>
+        </div>
+        <div class="mt-6 flex items-center space-x-4">
+          <span class="text-sm font-medium text-gray-600">Score: {post.score}</span>
+          <span class="text-sm font-medium text-gray-600">Comments: {post.comment_count}</span>
+          {post.is_answered && <span class="text-sm font-medium text-green-600">Answered</span>}
+        </div>
+        <div class="mt-6">
+          <a href="/usa-posts" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← Back to USA Visa Posts</a>
+        </div>
+      </div>
+    </div>
+  </Layout>
+) : (
+  <Layout>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-4">Post Not Found</h1>
+        <p class="text-gray-600 mb-4">The post you are looking for does not exist.</p>
+        <a href="/usa-posts" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← Back to USA Visa Posts</a>
+      </div>
+    </div>
+  </Layout>
+)}

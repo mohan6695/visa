@@ -193,6 +193,40 @@ The platform uses cloud-based AI providers for Q&A functionality:
 - **70-90% cache hit rate** for common questions
 - **Significant cost reduction** through aggressive caching
 
+## 📦 R2 to Supabase Pipeline
+
+A Cloudflare Workers-based pipeline to process and migrate data from R2 storage to Supabase:
+
+### Features
+
+- **Batch Processing**: Handles large files by splitting into smaller batches (under 128KB limit)
+- **Queue System**: Uses Cloudflare Queues for reliable processing
+- **KV Tracking**: Keeps track of processed files using Cloudflare KV
+- **Error Handling**: Retries failed operations and provides detailed logging
+
+### Deploy Pipeline Worker
+
+```bash
+# Set secrets
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+
+# Deploy
+wrangler deploy
+```
+
+### Usage
+
+1. **Health Check**: `GET /health` - Verify worker is running
+2. **List R2 Objects**: `GET /list` - List objects in the R2 bucket
+3. **Process Files**: `GET /run` - Process all unprocessed `new_posts.json` files
+4. **Automated Processing**: Runs every 6 hours via cron trigger
+
+### Configuration
+
+- `MAX_BATCH_SIZE`: 100KB per batch (configurable in `src/index.js`)
+- `CRON_SCHEDULE`: `0 */6 * * *` (every 6 hours)
+- **Bucket**: `data-pipeline` (configured in `wrangler.toml`)
+
 ## 🔬 Cloudflare Workers AI Clustering
 
 Automatic post clustering using Cloudflare's AI infrastructure:

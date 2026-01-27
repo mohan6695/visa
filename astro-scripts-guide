@@ -1,0 +1,1150 @@
+# End-to-End Implementation Guide
+## Astro → Supabase/R2 → Worker Clustering → Back to Astro
+
+---
+
+# 📁 FOLDER STRUCTURE
+
+```
+your-astro-project/
+├── src/
+│   ├── lib/
+│   │   ├── supabase.ts          ← Supabase client config
+│   │   ├── r2-client.ts         ← R2 storage client
+│   │   ├── post-service.ts      ← Create/store posts
+│   │   ├── cluster-service.ts   ← Fetch clustered results
+│   │   └── types.ts             ← TypeScript interfaces
+│   ├── components/
+│   │   └── PostForm.astro       ← Form component
+│   └── pages/
+│       ├── api/
+│       │   └── posts.ts         ← API route for Astro
+│       └── posts.astro          ← Display posts
+│
+└── worker-scripts/              ← Put in your Cloudflare Worker project
+    ├── clustering.ts            ← Main clustering logic
+    ├── vector-utils.ts          ← Embedding/similarity
+    ├── queue-processor.ts       ← Queue handler
+    └── types.ts                 ← Shared types
+```
+
+---
+
+# 🔑 KEY ARCHITECTURE
+
+## Data Flow
+
+```
+Astro Form
+    ↓
+[POST /api/posts]
+    ↓
+Supabase (metadata: text, time, url, comment_count)
+    ↓
+R2 (actual full text + comments JSON)
+    ↓
+Worker Queue (async clustering)
+    ↓
+Redis/KV Cache (clustered results)
+    ↓
+GET /api/posts (fetch clustered)
+    ↓
+Astro Display
+```
+
+## Database Schema
+
+### Supabase `posts` table
+```sql
+CREATE TABLE posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  group_id TEXT,
+  r2_key TEXT,                    -- pointer to R2
+  comment_count INT DEFAULT 0,
+  cluster_id TEXT,                -- set by Worker
+  embedding VECTOR(1536),         -- for similarity search
+  created_user_id TEXT
+);
+
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  user_id TEXT
+);
+```
+
+### R2 Storage Structure
+```
+r2://your-bucket/
+├── posts/
+│   ├── {post_id}/
+│   │   ├── metadata.json        -- title, url, created_at
+│   │   ├── content.md           -- full post text
+│   │   └── comments.json        -- all comments array
+```
+
+---
+
+# 📚 SCRIPT-BY-SCRIPT IMPLEMENTATION
+
+## PART 1: ASTRO CLIENT SCRIPTS
+
+### 1.1 types.ts
+```typescript
+export interface PostPayload {
+  title: string;
+  url: string;
+  text: string;                  -- full content
+  comments: Comment[];
+  groupId?: string;
+}
+
+export interface Comment {
+  text: string;
+  createdAt: Date;
+  userId: string;
+}
+
+export interface StoredPost {
+  id: string;
+  title: string;
+  url: string;
+  createdAt: Date;
+  commentCount: number;
+  clusterId?: string;
+  r2Key: string;
+}
+
+export interface ClusteredResults {
+  clusters: {
+    id: string;
+    posts: StoredPost[];
+    topicSummary?: string;
+    size: number;
+  }[];
+  timestamp: Date;
+}
+```
+
+### 1.2 supabase.ts
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+export async function createPost(payload: PostPayload) {
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .insert({
+      title: payload.title,
+      url: payload.url,
+      group_id: payload.groupId,
+      comment_count: payload.comments.length,
+      r2_key: `posts/${crypto.randomUUID()}/content`,
+      created_user_id: 'current-user-id' // replace with actual
+    })
+    .select()
+    .single();
+
+  if (postError) throw postError;
+
+  // Store comments separately
+  if (payload.comments.length > 0) {
+    const { error: commentsError } = await supabase
+      .from('comments')
+      .insert(
+        payload.comments.map(c => ({
+          post_id: post.id,
+          text: c.text,
+          user_id: c.userId,
+          created_at: c.createdAt
+        }))
+      );
+    
+    if (commentsError) throw commentsError;
+  }
+
+  return post;
+}
+
+export async function fetchPosts(groupId?: string) {
+  let query = supabase.from('posts').select('*');
+  
+  if (groupId) {
+    query = query.eq('group_id', groupId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getPostWithComments(postId: string) {
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', postId)
+    .single();
+
+  if (postError) throw postError;
+
+  const { data: comments, error: commentsError } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  if (commentsError) throw commentsError;
+
+  return { post, comments };
+}
+```
+
+### 1.3 r2-client.ts
+```typescript
+interface R2Credentials {
+  accountId: string;
+  accessKeyId: string;
+  accessKeySecret: string;
+  bucketName: string;
+}
+
+const credentials: R2Credentials = {
+  accountId: import.meta.env.PUBLIC_CF_ACCOUNT_ID,
+  accessKeyId: import.meta.env.CF_R2_ACCESS_KEY_ID,
+  accessKeySecret: import.meta.env.CF_R2_ACCESS_KEY_SECRET,
+  bucketName: import.meta.env.CF_R2_BUCKET_NAME
+};
+
+export async function uploadToR2(
+  key: string,
+  content: string | Record<string, any>
+): Promise<string> {
+  const body = typeof content === 'string' ? content : JSON.stringify(content);
+
+  const request = new Request(
+    `https://${credentials.bucketName}.r2.cloudflarestorage.com/${key}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${credentials.accessKeySecret}`,
+        'Content-Type': 'application/json'
+      },
+      body
+    }
+  );
+
+  const response = await fetch(request);
+  
+  if (!response.ok) {
+    throw new Error(`R2 upload failed: ${response.statusText}`);
+  }
+
+  return `s3://${credentials.bucketName}/${key}`;
+}
+
+export async function fetchFromR2(key: string): Promise<any> {
+  const request = new Request(
+    `https://${credentials.bucketName}.r2.cloudflarestorage.com/${key}`,
+    { method: 'GET' }
+  );
+
+  const response = await fetch(request);
+  
+  if (!response.ok) {
+    throw new Error(`R2 fetch failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+```
+
+### 1.4 post-service.ts
+```typescript
+import { supabase, createPost as dbCreatePost } from './supabase';
+import { uploadToR2 } from './r2-client';
+import type { PostPayload } from './types';
+
+export async function storePostWithComments(payload: PostPayload) {
+  // Step 1: Create post record in Supabase
+  const postId = crypto.randomUUID();
+  const r2Key = `posts/${postId}`;
+
+  // Step 2: Upload full content to R2
+  const contentPayload = {
+    title: payload.title,
+    text: payload.text,
+    url: payload.url,
+    createdAt: new Date().toISOString(),
+    comments: payload.comments.map(c => ({
+      text: c.text,
+      createdAt: c.createdAt.toISOString(),
+      userId: c.userId
+    }))
+  };
+
+  await uploadToR2(`${r2Key}/content.json`, contentPayload);
+
+  // Step 3: Create metadata record in Supabase
+  const { data: post, error } = await supabase
+    .from('posts')
+    .insert({
+      id: postId,
+      title: payload.title,
+      url: payload.url,
+      group_id: payload.groupId || 'default',
+      comment_count: payload.comments.length,
+      r2_key: r2Key,
+      created_user_id: 'current-user' // TODO: get from auth
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to store post: ${error.message}`);
+  }
+
+  // Step 4: Insert comments
+  if (payload.comments.length > 0) {
+    await supabase.from('comments').insert(
+      payload.comments.map(c => ({
+        post_id: postId,
+        text: c.text,
+        user_id: c.userId,
+        created_at: c.createdAt.toISOString()
+      }))
+    );
+  }
+
+  // Step 5: Send to Worker queue for clustering
+  await fetch('/api/queue-post', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId, text: payload.text })
+  });
+
+  return post;
+}
+
+export async function triggerClustering(groupId: string) {
+  const response = await fetch('/api/trigger-cluster', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ groupId })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to trigger clustering');
+  }
+
+  return response.json();
+}
+```
+
+### 1.5 cluster-service.ts
+```typescript
+import { supabase } from './supabase';
+import type { ClusteredResults } from './types';
+
+export async function fetchClusteredPosts(groupId: string): Promise<ClusteredResults> {
+  // Fetch from KV cache first (set by Worker)
+  const cacheKey = `clusters:${groupId}`;
+  
+  const cacheResponse = await fetch(`/api/get-cache?key=${cacheKey}`);
+  
+  if (cacheResponse.ok) {
+    const cached = await cacheResponse.json();
+    return cached;
+  }
+
+  // Fallback: fetch from Supabase and group by cluster_id
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('cluster_id', { ascending: true });
+
+  if (error) throw error;
+
+  const clusters = new Map<string, any[]>();
+  
+  posts.forEach(post => {
+    const clusterId = post.cluster_id || 'unclustered';
+    if (!clusters.has(clusterId)) {
+      clusters.set(clusterId, []);
+    }
+    clusters.get(clusterId)!.push(post);
+  });
+
+  const result: ClusteredResults = {
+    clusters: Array.from(clusters.entries()).map(([id, posts]) => ({
+      id,
+      posts,
+      size: posts.length
+    })),
+    timestamp: new Date()
+  };
+
+  return result;
+}
+
+export async function getClusterDetails(clusterId: string) {
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('cluster_id', clusterId);
+
+  if (error) throw error;
+
+  return {
+    id: clusterId,
+    posts,
+    size: posts.length,
+    avgComments: posts.reduce((sum, p) => sum + p.comment_count, 0) / posts.length
+  };
+}
+```
+
+---
+
+## PART 2: ASTRO API ROUTES
+
+### 1.6 src/pages/api/posts.ts
+```typescript
+import { storePostWithComments } from '../../lib/post-service';
+import type { APIRoute } from 'astro';
+
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    const payload = await request.json();
+    
+    const post = await storePostWithComments({
+      title: payload.title,
+      url: payload.url,
+      text: payload.text,
+      comments: payload.comments || [],
+      groupId: payload.groupId
+    });
+
+    return new Response(JSON.stringify({ success: true, post }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+};
+
+export const GET: APIRoute = async ({ url }) => {
+  try {
+    const groupId = url.searchParams.get('groupId');
+    const { fetchPosts } = await import('../../lib/supabase');
+    
+    const posts = await fetchPosts(groupId || undefined);
+    
+    return new Response(JSON.stringify({ posts }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+};
+```
+
+### 1.7 src/pages/api/queue-post.ts
+```typescript
+import type { APIRoute } from 'astro';
+
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    const payload = await request.json();
+    
+    // Forward to Worker endpoint
+    const workerResponse = await fetch(
+      'https://r2-supabase-stackoverflow.YOUR_SUBDOMAIN.workers.dev/queue/add',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.WORKER_SECRET_KEY}`
+        },
+        body: JSON.stringify({
+          postId: payload.postId,
+          text: payload.text,
+          action: 'cluster-post'
+        })
+      }
+    );
+
+    if (!workerResponse.ok) {
+      throw new Error('Failed to queue post for clustering');
+    }
+
+    return new Response(JSON.stringify({ queued: true }), { status: 200 });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+};
+```
+
+### 1.8 src/pages/api/get-cache.ts
+```typescript
+import type { APIRoute } from 'astro';
+
+export const GET: APIRoute = async ({ url }) => {
+  try {
+    const key = url.searchParams.get('key');
+    
+    if (!key) {
+      return new Response(
+        JSON.stringify({ error: 'Missing key parameter' }),
+        { status: 400 }
+      );
+    }
+
+    // Fetch from Worker KV
+    const response = await fetch(
+      `https://r2-supabase-stackoverflow.YOUR_SUBDOMAIN.workers.dev/kv/get?key=${encodeURIComponent(key)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.WORKER_SECRET_KEY}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    }
+
+    const data = await response.json();
+    return new Response(JSON.stringify(data), { status: 200 });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+};
+```
+
+---
+
+## PART 3: WORKER CLUSTERING SCRIPTS
+
+### 1.9 worker-scripts/types.ts
+```typescript
+export interface ClusterJob {
+  postId: string;
+  text: string;
+  action: 'cluster-post' | 'batch-cluster' | 'recluster-group';
+  groupId?: string;
+}
+
+export interface Post {
+  id: string;
+  title: string;
+  text: string;
+  url: string;
+  createdAt: string;
+  commentCount: number;
+}
+
+export interface Cluster {
+  id: string;
+  posts: Post[];
+  centroid?: number[];
+  summary?: string;
+}
+
+export interface ClusterResult {
+  clusterId: string;
+  posts: string[]; // post IDs
+  size: number;
+  similarity: number;
+}
+```
+
+### 2.0 worker-scripts/vector-utils.ts
+```typescript
+// Simple TF-IDF + Cosine Similarity implementation
+// For production, use proper embedding service (Hugging Face, Cohere, etc.)
+
+export function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(t => t.length > 2);
+}
+
+export function buildVocabulary(documents: string[]): Map<string, number> {
+  const vocab = new Map<string, number>();
+  let index = 0;
+
+  documents.forEach(doc => {
+    const tokens = tokenize(doc);
+    tokens.forEach(token => {
+      if (!vocab.has(token)) {
+        vocab.set(token, index++);
+      }
+    });
+  });
+
+  return vocab;
+}
+
+export function calculateTFIDF(
+  document: string,
+  vocab: Map<string, number>,
+  documents: string[]
+): number[] {
+  const tokens = tokenize(document);
+  const vector = new Array(vocab.size).fill(0);
+
+  // Calculate TF
+  const tf = new Map<string, number>();
+  tokens.forEach(token => {
+    tf.set(token, (tf.get(token) || 0) + 1);
+  });
+
+  // Calculate IDF
+  tokens.forEach(token => {
+    const docsWithToken = documents.filter(doc =>
+      tokenize(doc).includes(token)
+    ).length;
+
+    const idf = Math.log(documents.length / (docsWithToken || 1));
+    const tfidf = (tf.get(token) || 0) * idf;
+
+    const index = vocab.get(token);
+    if (index !== undefined) {
+      vector[index] = tfidf;
+    }
+  });
+
+  return vector;
+}
+
+export function cosineSimilarity(vec1: number[], vec2: number[]): number {
+  const dotProduct = vec1.reduce((sum, v1, i) => sum + v1 * vec2[i], 0);
+  const mag1 = Math.sqrt(vec1.reduce((sum, v) => sum + v * v, 0));
+  const mag2 = Math.sqrt(vec2.reduce((sum, v) => sum + v * v, 0));
+
+  if (mag1 === 0 || mag2 === 0) return 0;
+  return dotProduct / (mag1 * mag2);
+}
+
+export function similarity(text1: string, text2: string): number {
+  const docs = [text1, text2];
+  const vocab = buildVocabulary(docs);
+  
+  const vec1 = calculateTFIDF(text1, vocab, docs);
+  const vec2 = calculateTFIDF(text2, vocab, docs);
+
+  return cosineSimilarity(vec1, vec2);
+}
+```
+
+### 2.1 worker-scripts/clustering.ts
+```typescript
+import type { Post, ClusterResult } from './types';
+import { similarity } from './vector-utils';
+
+const SIMILARITY_THRESHOLD = 0.6; // Adjust based on your needs
+
+export async function clusterPosts(posts: Post[]): Promise<ClusterResult[]> {
+  if (posts.length === 0) return [];
+  if (posts.length === 1) {
+    return [{
+      clusterId: `cluster-${posts[0].id}`,
+      posts: [posts[0].id],
+      size: 1,
+      similarity: 1.0
+    }];
+  }
+
+  const clusters: ClusterResult[] = [];
+  const processed = new Set<string>();
+
+  // Simple agglomerative clustering
+  for (const post of posts) {
+    if (processed.has(post.id)) continue;
+
+    const cluster: ClusterResult = {
+      clusterId: `cluster-${post.id}`,
+      posts: [post.id],
+      size: 1,
+      similarity: 1.0
+    };
+
+    // Find similar posts
+    for (const otherPost of posts) {
+      if (otherPost.id === post.id || processed.has(otherPost.id)) continue;
+
+      const sim = similarity(post.text, otherPost.text);
+
+      if (sim >= SIMILARITY_THRESHOLD) {
+        cluster.posts.push(otherPost.id);
+        cluster.size++;
+        processed.add(otherPost.id);
+      }
+    }
+
+    processed.add(post.id);
+    clusters.push(cluster);
+  }
+
+  return clusters;
+}
+
+export async function reclusterGroup(
+  posts: Post[],
+  env: any
+): Promise<ClusterResult[]> {
+  // More sophisticated clustering with merging
+  const initialClusters = await clusterPosts(posts);
+  
+  // Merge clusters if their centroids are similar
+  const merged = mergeClustersByThreshold(
+    initialClusters,
+    posts,
+    0.7 // Higher threshold for merging
+  );
+
+  return merged;
+}
+
+function mergeClustersByThreshold(
+  clusters: ClusterResult[],
+  posts: Post[],
+  threshold: number
+): ClusterResult[] {
+  const merged = [...clusters];
+  let i = 0;
+
+  while (i < merged.length) {
+    let j = i + 1;
+
+    while (j < merged.length) {
+      const cluster1 = merged[i];
+      const cluster2 = merged[j];
+
+      const sim = calculateClusterSimilarity(cluster1, cluster2, posts);
+
+      if (sim >= threshold) {
+        // Merge cluster2 into cluster1
+        cluster1.posts.push(...cluster2.posts);
+        cluster1.size = cluster1.posts.length;
+        cluster1.similarity = (cluster1.similarity + sim) / 2;
+
+        merged.splice(j, 1);
+      } else {
+        j++;
+      }
+    }
+
+    i++;
+  }
+
+  return merged;
+}
+
+function calculateClusterSimilarity(
+  cluster1: ClusterResult,
+  cluster2: ClusterResult,
+  posts: Post[]
+): number {
+  // Average similarity between all pairs
+  let totalSim = 0;
+  let count = 0;
+
+  for (const id1 of cluster1.posts) {
+    for (const id2 of cluster2.posts) {
+      const post1 = posts.find(p => p.id === id1);
+      const post2 = posts.find(p => p.id === id2);
+
+      if (post1 && post2) {
+        totalSim += similarity(post1.text, post2.text);
+        count++;
+      }
+    }
+  }
+
+  return count > 0 ? totalSim / count : 0;
+}
+```
+
+### 2.2 worker-scripts/queue-processor.ts
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { clusterPosts, reclusterGroup } from './clustering';
+import type { ClusterJob } from './types';
+
+export async function handleQueueMessage(
+  batch: any,
+  env: any
+): Promise<void> {
+  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_KEY);
+
+  for (const message of batch.messages) {
+    try {
+      const job: ClusterJob = JSON.parse(message.body);
+
+      switch (job.action) {
+        case 'cluster-post':
+          await processSinglePost(job, env, supabase);
+          break;
+
+        case 'batch-cluster':
+          await processBatchCluster(job, env, supabase);
+          break;
+
+        case 'recluster-group':
+          await processGroupRecluster(job, env, supabase);
+          break;
+      }
+
+      message.ack();
+    } catch (error) {
+      console.error('Queue processing error:', error);
+      message.nack();
+    }
+  }
+}
+
+async function processSinglePost(
+  job: ClusterJob,
+  env: any,
+  supabase: any
+): Promise<void> {
+  const { postId, text } = job;
+
+  // Fetch recent posts from same group
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('id, title, text, url, created_at, comment_count')
+    .eq('group_id', 'default') // TODO: get from job
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  // Add new post to documents
+  const docs = [
+    ...posts.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      text: p.text,
+      url: p.url,
+      createdAt: p.created_at,
+      commentCount: p.comment_count
+    })),
+    { id: postId, title: '', text, url: '', createdAt: new Date().toISOString(), commentCount: 0 }
+  ];
+
+  // Cluster
+  const clusters = await clusterPosts(docs);
+
+  // Find which cluster contains our post
+  const postCluster = clusters.find(c => c.posts.includes(postId));
+  
+  if (postCluster) {
+    // Update post with cluster_id
+    await supabase
+      .from('posts')
+      .update({ cluster_id: postCluster.clusterId })
+      .eq('id', postId);
+
+    // Cache clusters in KV
+    await env.POSTS_KV.put(
+      `clusters:default`,
+      JSON.stringify({
+        clusters: clusters.map(c => ({
+          id: c.clusterId,
+          posts: c.posts,
+          size: c.size
+        })),
+        timestamp: new Date().toISOString()
+      }),
+      { expirationTtl: 3600 } // 1 hour
+    );
+  }
+}
+
+async function processBatchCluster(
+  job: ClusterJob,
+  env: any,
+  supabase: any
+): Promise<void> {
+  const groupId = job.groupId || 'default';
+
+  // Fetch all unclustered posts
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('id, title, text, url, created_at, comment_count')
+    .eq('group_id', groupId)
+    .is('cluster_id', null);
+
+  if (error) throw error;
+
+  const docs = posts.map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    text: p.text,
+    url: p.url,
+    createdAt: p.created_at,
+    commentCount: p.comment_count
+  }));
+
+  const clusters = await clusterPosts(docs);
+
+  // Batch update
+  for (const cluster of clusters) {
+    for (const postId of cluster.posts) {
+      await supabase
+        .from('posts')
+        .update({ cluster_id: cluster.clusterId })
+        .eq('id', postId);
+    }
+  }
+
+  // Cache
+  await env.POSTS_KV.put(
+    `clusters:${groupId}`,
+    JSON.stringify({
+      clusters: clusters.map(c => ({
+        id: c.clusterId,
+        posts: c.posts,
+        size: c.size
+      })),
+      timestamp: new Date().toISOString()
+    }),
+    { expirationTtl: 3600 }
+  );
+}
+
+async function processGroupRecluster(
+  job: ClusterJob,
+  env: any,
+  supabase: any
+): Promise<void> {
+  const groupId = job.groupId || 'default';
+
+  // Fetch all posts
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('id, title, text, url, created_at, comment_count')
+    .eq('group_id', groupId);
+
+  if (error) throw error;
+
+  const docs = posts.map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    text: p.text,
+    url: p.url,
+    createdAt: p.created_at,
+    commentCount: p.comment_count
+  }));
+
+  // Recluster with merging
+  const clusters = await reclusterGroup(docs, env);
+
+  // Clear old clusters and update
+  for (const cluster of clusters) {
+    for (const postId of cluster.posts) {
+      await supabase
+        .from('posts')
+        .update({ cluster_id: cluster.clusterId })
+        .eq('id', postId);
+    }
+  }
+
+  // Cache
+  await env.POSTS_KV.put(
+    `clusters:${groupId}`,
+    JSON.stringify({
+      clusters: clusters.map(c => ({
+        id: c.clusterId,
+        posts: c.posts,
+        size: c.size
+      })),
+      timestamp: new Date().toISOString()
+    }),
+    { expirationTtl: 3600 }
+  );
+}
+```
+
+---
+
+## PART 4: INTEGRATION WITH EXISTING WORKER
+
+### 2.3 Update Your worker.py
+
+Add these handlers to your existing worker:
+
+```python
+import json
+from clustering import clusterPosts, reclusterGroup  # Import your clustering
+from queue_processor import handleQueueMessage
+
+async def fetch(request, env, ctx):
+    """HTTP handler - routes requests"""
+    url = request.url
+    path = url.pathname
+
+    # Your existing routes...
+    
+    # NEW ROUTES
+    if path == "/queue/add":
+        return await handle_queue_add(request, env)
+    
+    if path == "/kv/get":
+        return await handle_kv_get(request, env)
+    
+    if path == "/cluster/trigger":
+        return await handle_cluster_trigger(request, env)
+    
+    return Response("Not found", status=404)
+
+async def queue_handler(batch, env, ctx):
+    """Queue consumer - processes clustering jobs"""
+    for message in batch.messages:
+        try:
+            job = json.loads(message.body)
+            
+            supabase = create_supabase_client(env)
+            
+            if job['action'] == 'cluster-post':
+                await process_single_post(job, env, supabase)
+            elif job['action'] == 'batch-cluster':
+                await process_batch_cluster(job, env, supabase)
+            elif job['action'] == 'recluster-group':
+                await process_group_recluster(job, env, supabase)
+            
+            message.ack()
+        except Exception as e:
+            print(f"Error: {e}")
+            message.nack()
+
+async def handle_queue_add(request, env):
+    """Add job to queue"""
+    payload = await request.json()
+    
+    queue = env.POSTS_QUEUE
+    await queue.send({
+        'postId': payload['postId'],
+        'text': payload['text'],
+        'action': payload['action']
+    })
+    
+    return Response(json.dumps({'queued': True}), 
+                    headers={'Content-Type': 'application/json'})
+
+async def handle_kv_get(request, env):
+    """Fetch from KV cache"""
+    key = request.url.searchParams.get('key')
+    value = await env.POSTS_KV.get(key)
+    
+    if not value:
+        return Response('Not found', status=404)
+    
+    return Response(value, 
+                    headers={'Content-Type': 'application/json'})
+
+async def handle_cluster_trigger(request, env):
+    """Manually trigger clustering for a group"""
+    payload = await request.json()
+    group_id = payload.get('groupId', 'default')
+    
+    queue = env.POSTS_QUEUE
+    await queue.send({
+        'groupId': group_id,
+        'action': 'recluster-group'
+    })
+    
+    return Response(json.dumps({'triggered': True}), 
+                    headers={'Content-Type': 'application/json'})
+```
+
+---
+
+# 🚀 IMPLEMENTATION CHECKLIST
+
+## Phase 1: Supabase Setup
+- [ ] Create `posts` table with schema from Part 1
+- [ ] Create `comments` table
+- [ ] Enable RLS if needed
+- [ ] Test with sample data
+
+## Phase 2: Astro Scripts
+- [ ] Copy all `.ts` files to `src/lib/`
+- [ ] Add API routes to `src/pages/api/`
+- [ ] Update `.env` with Supabase keys
+- [ ] Test POST to `/api/posts`
+
+## Phase 3: Worker Setup
+- [ ] Copy `clustering.ts`, `vector-utils.ts` to worker project
+- [ ] Update `worker.py` with new handlers
+- [ ] Add queue handlers to exports
+- [ ] Deploy with `wrangler deploy`
+
+## Phase 4: Testing
+- [ ] Submit post via Astro form
+- [ ] Check Supabase for post record
+- [ ] Verify R2 has content
+- [ ] Check Worker queue processes job
+- [ ] Verify clusters in KV cache
+
+## Phase 5: Frontend
+- [ ] Build PostForm.astro component
+- [ ] Build display component for clustered results
+- [ ] Test end-to-end flow
+
+---
+
+# 🔧 CUSTOMIZATION POINTS
+
+1. **Similarity Threshold** (clustering.ts:5)
+   - Current: 0.6 (60%)
+   - Increase for tighter clusters, decrease for broader clustering
+
+2. **Merge Threshold** (clustering.ts:50)
+   - Current: 0.7 (70%)
+   - Controls when clusters get merged together
+
+3. **Document Limit** (queue-processor.ts:30)
+   - Current: 50 recent posts
+   - Increase for more comprehensive clustering, decrease for speed
+
+4. **KV Cache TTL** (queue-processor.ts:70)
+   - Current: 3600 (1 hour)
+   - Increase for longer caching, decrease for fresher results
+
+---
+
+# 📊 PERFORMANCE NOTES
+
+- **Vector similarity**: O(n*m) where n,m = document count
+- **Clustering**: O(n²) for agglomerative approach
+- **Optimal batch size**: 50-100 posts per clustering job
+- **Recommended** run clustering on schedule (e.g., every hour) for large groups
+
+For 100k+ posts, consider:
+- Approximate nearest neighbors (ANN)
+- Proper embedding service (Cohere, Hugging Face)
+- Redis for distributed clustering
+- Batch processing in multiple workers

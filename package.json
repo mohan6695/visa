@@ -4,10 +4,10 @@
   "description": "Visa Platform - Your Gateway to Global Travel",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "deploy": "wrangler pages deploy dist",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "deploy": "wrangler pages deploy .next/static",
     "setup:backend": "cd backend && pip install -r requirements.txt",
     "seed:data": "cd backend && python src/scripts/seed_data.py",
     "test:backend": "cd backend && pytest tests/ -v"
@@ -22,12 +22,15 @@
   "author": "Visa Platform Team",
   "license": "MIT",
   "devDependencies": {
-    "@astrojs/cloudflare": "^12.6.12",
-    "@astrojs/react": "^4.4.2",
-    "@astrojs/tailwind": "^6.0.2",
-    "astro": "^5.16.11",
-    "http-server": "^14.1.1",
-    "tailwindcss": "^3.4.19"
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.22.0",
+    "eslint-config-next": "^16.1.4",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
@@ -36,6 +39,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
+    "meilisearch": "^0.55.0",
+    "next": "^16.1.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hot-toast": "^2.6.0",

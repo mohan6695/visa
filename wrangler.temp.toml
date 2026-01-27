@@ -1,0 +1,47 @@
+name = "visa-1"
+main = "src/index.js"
+compatibility_date = "2026-01-22"
+
+compatibility_flags = [
+  "nodejs_compat"
+]
+
+account_id = "3ae98b91b615a3cf17f8acb402881aae"
+workers_dev = true
+
+# Pages configuration
+pages_build_output_dir = "dist"
+
+# R2 Bucket
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "data-pipeline"
+
+# KV Namespace
+[[kv_namespaces]]
+binding = "PROCESSED_KEYS"
+id = "5efb3f36000f4319ab0e926229da7b9d"
+
+# Queues
+[[queues.producers]]
+binding = "PROCESS_QUEUE"
+queue = "r2-process-queue"
+
+[[queues.consumers]]
+queue = "r2-process-queue"
+max_batch_size = 1
+max_batch_timeout = 30
+max_retries = 5
+dead_letter_queue = "r2-process-queue-dlq"
+
+# Environment
+[vars]
+SUPABASE_URL = "https://cycnichledvqbxevrwnt.supabase.co"
+
+# Triggers
+[triggers]
+crons = ["0 */6 * * *"]
+
+# AI
+[ai]
+binding = "AI"
