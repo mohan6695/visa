@@ -1,6 +1,6 @@
 name = "visa-1"
 compatibility_date = "2026-01-22"
-pages_build_output_dir = "dist"
+pages_build_output_dir = ".next"
 
 # Environment variables
 [vars]
