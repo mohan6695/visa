@@ -1,0 +1,23 @@
+[
+  {
+    "id": "post_001",
+    "title": "How to scale PostgreSQL to 100k QPS?",
+    "text": "We're running into CPU bottlenecks at 10k QPS. Using pgBouncer already. Should we shard? Use Vitess? What's the best approach?",
+    "user": "alice",
+    "url": "https://stackoverflow.com/questions/...",
+    "date": "2026-01-23T10:00:00Z",
+    "comments": [
+      {
+        "text": "pgBouncer with read replicas is the way. We handle 50k QPS easily.",
+        "user": "bob",
+        "url": "https://example.com",
+        "date": "2026-01-23T10:15:00Z"
+      },
+      {
+        "text": "Consider Vitess for horizontal scaling across multiple databases.",
+        "user": "carol",
+        "date": "2026-01-23T10:30:00Z"
+      }
+    ]
+  }
+]

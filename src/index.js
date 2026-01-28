@@ -164,21 +164,22 @@ async function handleQueueMessages(batch, env, ctx) {
       
       for (const post of posts) {
         try {
-          // Generate unique post ID and R2 key
-          const postId = crypto.randomUUID();
+          // Use existing post ID or generate new one
+          const postId = post.id || crypto.randomUUID();
           const r2Key = `posts/${postId}`;
 
           // Upload full content to R2
           const contentPayload = {
             title: post.title,
-            text: post.content,
+            text: post.text,
             url: post.url || '',
-            createdAt: new Date().toISOString(),
+            createdAt: post.date || new Date().toISOString(),
             commentCount: post.comments?.length || 0,
             comments: post.comments?.map(c => ({
               text: c.text,
-              createdAt: c.createdAt?.toISOString() || new Date().toISOString(),
-              userId: c.userId || 'anonymous'
+              createdAt: c.date?.toISOString() || new Date().toISOString(),
+              userId: c.user || 'anonymous',
+              url: c.url || ''
             })) || []
           };
 
@@ -190,18 +191,24 @@ async function handleQueueMessages(batch, env, ctx) {
             headers: {
               "apikey": serviceRoleKey,
               "Authorization": `Bearer ${serviceRoleKey}`,
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates"
             },
             body: JSON.stringify({
               id: postId,
               title: post.title,
+              content: post.text,
               url: post.url || '',
               group_id: post.group_id || 'default',
               r2_key: r2Key,
               comment_count: post.comments?.length || 0,
-              created_user_id: post.user_id || 'anonymous',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              created_user_id: post.user || 'anonymous',
+              created_at: post.date || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              likes_count: 0,
+              upvotes: 0,
+              downvotes: 0,
+              score: 0
             })
           });
 
@@ -210,9 +217,11 @@ async function handleQueueMessages(batch, env, ctx) {
             const commentsData = post.comments.map((comment, index) => ({
               id: `${postId}_comment_${index}`,
               post_id: postId,
-              text: comment.text,
-              user_id: comment.userId || 'anonymous',
-              created_at: comment.createdAt?.toISOString() || new Date().toISOString()
+              content: comment.text,
+              user_id: comment.user || 'anonymous',
+              created_at: comment.date || new Date().toISOString(),
+              url: comment.url || '',
+              likes_count: 0
             }));
 
             await fetch(`${supabaseUrl}/rest/v1/comments`, {
@@ -220,7 +229,8 @@ async function handleQueueMessages(batch, env, ctx) {
               headers: {
                 "apikey": serviceRoleKey,
                 "Authorization": `Bearer ${serviceRoleKey}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates"
               },
               body: JSON.stringify(commentsData)
             });
