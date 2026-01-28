@@ -15,7 +15,6 @@ wrangler deploy --config wrangler.mcp.toml
 import json
 import asyncio
 from typing import Any, Dict, List, Optional
-import httpx
 from datetime import datetime
 from workers import WorkerEntrypoint, Response, Request
 
@@ -37,15 +36,23 @@ async def generate_embeddings(texts: List[str], account_id: str, token: str) -> 
         return []
         
     payload = {"text": texts}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{EMBED_MODEL}",
-            headers={"Authorization": f"Bearer {token}"},
-            json=payload,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("result", {}).get("data", [])
+    resp = await fetch(
+        f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{EMBED_MODEL}",
+        {
+            "method": "POST",
+            "headers": {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps(payload)
+        }
+    )
+    
+    if not resp.ok:
+        raise Exception(f"Failed to generate embeddings: {resp.status}")
+        
+    data = await resp.json()
+    return data.get("result", {}).get("data", [])
 
 async def search_posts(query: str, limit: int = 5) -> str:
     """Semantic search for posts."""
@@ -54,34 +61,36 @@ async def search_posts(query: str, limit: int = 5) -> str:
         embeddings = await generate_embeddings([query], CF_ACCOUNT_ID, CF_API_TOKEN)
         if not embeddings:
             return "Failed to generate embedding"
-        
+            
         query_vector = embeddings[0]
         
         # 2. Query Supabase
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                f"{SUPABASE_URL}/rest/v1/rpc/match_posts",
-                headers={
+        resp = await fetch(
+            f"{SUPABASE_URL}/rest/v1/rpc/match_posts",
+            {
+                "method": "POST",
+                "headers": {
                     "apikey": SERVICE_ROLE_KEY,
                     "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
                     "Content-Type": "application/json"
                 },
-                json={
+                "body": json.dumps({
                     "query_embedding": query_vector,
                     "match_threshold": 0.5,
                     "match_count": limit
-                }
-            )
+                })
+            }
+        )
+        
+        # Fallback if RPC doesn't exist (simpler implementation)
+        if resp.status != 200:
+             return f"Search failed: {await resp.text()}. Note: match_posts RPC might be missing."
             
-            # Fallback if RPC doesn't exist (simpler implementation)
-            if resp.status_code != 200:
-                 return f"Search failed: {resp.text}. Note: match_posts RPC might be missing."
-                 
-            posts = resp.json()
-            if not posts:
-                return "No matching posts found."
-                
-            return json.dumps(posts, indent=2)
+        posts = await resp.json()
+        if not posts:
+            return "No matching posts found."
+            
+        return json.dumps(posts, indent=2)
             
     except Exception as e:
         return f"Error searching posts: {str(e)}"
@@ -89,36 +98,41 @@ async def search_posts(query: str, limit: int = 5) -> str:
 async def get_analytics(days: int = 7) -> str:
     """Get basic platform stats."""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            # Count posts
-            resp = await client.get(
-                f"{SUPABASE_URL}/rest/v1/posts?select=count",
-                headers={
+        # Count posts
+        resp = await fetch(
+            f"{SUPABASE_URL}/rest/v1/posts?select=count",
+            {
+                "method": "GET",
+                "headers": {
                    "apikey": SERVICE_ROLE_KEY,
                    "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
                    "Range": "0-0"
                 }
-            )
-            total_posts = resp.headers.get("Content-Range", "0/0").split("/")[-1]
-            
-            # Count clusters
-            resp = await client.get(
-                f"{SUPABASE_URL}/rest/v1/clusters?select=count",
-                headers={
+            }
+        )
+        total_posts = resp.headers.get("Content-Range", "0/0").split("/")[-1]
+        
+        # Count clusters
+        resp = await fetch(
+            f"{SUPABASE_URL}/rest/v1/clusters?select=count",
+            {
+                "method": "GET",
+                "headers": {
                    "apikey": SERVICE_ROLE_KEY,
                    "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
                    "Range": "0-0"
                 }
-            )
-            total_clusters = resp.headers.get("Content-Range", "0/0").split("/")[-1]
-            
-            return json.dumps({
-                "total_posts": total_posts,
-                "total_clusters": total_clusters,
-                "period_days": days,
-                "status": "active"
-            }, indent=2)
-            
+            }
+        )
+        total_clusters = resp.headers.get("Content-Range", "0/0").split("/")[-1]
+        
+        return json.dumps({
+            "total_posts": total_posts,
+            "total_clusters": total_clusters,
+            "period_days": days,
+            "status": "active"
+        }, indent=2)
+        
     except Exception as e:
         return f"Error fetching analytics: {str(e)}"
         

@@ -164,6 +164,27 @@ async function handleQueueMessages(batch, env, ctx) {
       
       for (const post of posts) {
         try {
+          // Generate unique post ID and R2 key
+          const postId = crypto.randomUUID();
+          const r2Key = `posts/${postId}`;
+
+          // Upload full content to R2
+          const contentPayload = {
+            title: post.title,
+            text: post.content,
+            url: post.url || '',
+            createdAt: new Date().toISOString(),
+            commentCount: post.comments?.length || 0,
+            comments: post.comments?.map(c => ({
+              text: c.text,
+              createdAt: c.createdAt?.toISOString() || new Date().toISOString(),
+              userId: c.userId || 'anonymous'
+            })) || []
+          };
+
+          await env.MY_BUCKET.put(`${r2Key}/content.json`, JSON.stringify(contentPayload));
+
+          // Create metadata in Supabase
           await fetch(`${supabaseUrl}/rest/v1/posts`, {
             method: "POST",
             headers: {
@@ -172,15 +193,42 @@ async function handleQueueMessages(batch, env, ctx) {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
+              id: postId,
               title: post.title,
-              short_excerpt: post.short_excerpt,
-              content: post.content,
+              url: post.url || '',
+              group_id: post.group_id || 'default',
+              r2_key: r2Key,
+              comment_count: post.comments?.length || 0,
+              created_user_id: post.user_id || 'anonymous',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
           });
+
+          // Add comments to Supabase (if any)
+          if (post.comments && post.comments.length > 0) {
+            const commentsData = post.comments.map((comment, index) => ({
+              id: `${postId}_comment_${index}`,
+              post_id: postId,
+              text: comment.text,
+              user_id: comment.userId || 'anonymous',
+              created_at: comment.createdAt?.toISOString() || new Date().toISOString()
+            }));
+
+            await fetch(`${supabaseUrl}/rest/v1/comments`, {
+              method: "POST",
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(commentsData)
+            });
+          }
+
+          console.log(`Successfully processed post: ${postId}`);
         } catch (error) {
-          console.error("Error inserting post:", error);
+          console.error("Error processing post:", error);
         }
       }
     }
