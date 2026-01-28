@@ -229,3 +229,17 @@ async function runClusteringPipeline(env: Env): Promise<any> {
 
   return { status: "Clustering complete", processed, clusters: clusters.length };
 }
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const result = await runClusteringPipeline(env);
+    return new Response(JSON.stringify(result), {
+      headers: { "Content-Type": "application/json" }
+    });
+  },
+
+  async scheduled(event: any, env: Env, ctx: any): Promise<void> {
+    const result = await runClusteringPipeline(env);
+    console.log("Clustering cron: ", result);
+  }
+};
